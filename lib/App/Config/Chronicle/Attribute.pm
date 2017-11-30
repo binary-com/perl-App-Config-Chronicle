@@ -3,7 +3,8 @@ package App::Config::Chronicle::Attribute;
 use Moose;
 extends 'App::Config::Chronicle::Node';
 use namespace::autoclean;
-use JSON::XS qw( decode_json );
+use Encode;
+use JSON::MaybeXS;
 
 use MooseX::Types -declare => ['LongStr'];
 use Moose::Util::TypeConstraints;
@@ -30,7 +31,7 @@ sub _check_type {
     my $def = $self->{definition};
     $self->{_json_string} //= $def->{isa} eq 'json_string' ? 1 : 0;
     if ($self->{_json_string}) {
-        try { $value = decode_json($value) } catch { die "Couldn't decode JSON attribute $value: $_" };
+        try { $value = JSON->MaybeXS->new->decode(Encode::decode_utf8($value)) } catch { die "Couldn't decode JSON attribute $value: $_" };
     } else {
         $self->{_type_constraint} //= find_type_constraint($def->{isa});
         unless ($self->{_type_constraint}) {

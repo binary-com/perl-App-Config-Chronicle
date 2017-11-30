@@ -3,7 +3,7 @@ requires 'perl', '5.014';
 requires 'Data::Chronicle::Reader';
 requires 'Data::Chronicle::Writer';
 requires 'Data::Hash::DotNotation';
-requires 'JSON::XS';
+requires 'JSON::MaybeXS';
 requires 'Moose';
 requires 'Time::HiRes';
 requires 'Date::Utility';
