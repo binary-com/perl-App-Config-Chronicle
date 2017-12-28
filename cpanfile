@@ -3,7 +3,7 @@ requires 'perl', '5.014';
 requires 'Data::Chronicle::Reader';
 requires 'Data::Chronicle::Writer';
 requires 'Data::Hash::DotNotation';
-requires 'JSON::XS';
+requires 'JSON::MaybeXS';
 requires 'Moose';
 requires 'Time::HiRes';
 requires 'Date::Utility';
@@ -13,6 +13,7 @@ requires 'namespace::autoclean';
 on test => sub {
     requires 'Test::MockObject';
     requires 'Test::More', '>= 0.98';
+    requires 'Test::NoWarnings';
 };
 
 on develop => sub {
