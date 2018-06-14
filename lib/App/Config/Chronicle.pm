@@ -324,7 +324,12 @@ sub save_dynamic {
     my $global = Data::Hash::DotNotation->new();
     foreach my $key (keys %{$self->dynamic_settings_info->{global}}) {
         if ($self->data_set->{global}->key_exists($key)) {
+            # Legacy (group save)
             $global->set($key, $self->data_set->{global}->get($key));
+            # New (individual save)
+            my $old = $self->chronicle_reader->get($self->setting_namespace, $key) || [''];
+            my $new = $self->data_set->{global}->get($key);
+            $self->chronicle_writer->set($self->setting_namespace, $key, [$new], Date::Utility->new) if $new ne $old->[0];
         }
     }
 
@@ -345,6 +350,12 @@ sub current_revision {
     my $self = shift;
     my $settings = $self->chronicle_reader->get($self->setting_namespace, $self->setting_name);
     return $settings->{_rev};
+}
+
+sub get_history {
+    my ($self, $key, $rev) = @_;
+    my $setting = $self->chronicle_reader->get_history($self->setting_namespace, $key, $rev);
+    return $setting->[0];
 }
 
 sub _build_data_set {

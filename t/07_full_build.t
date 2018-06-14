@@ -31,6 +31,7 @@ my $app_config2 = App::Config::Chronicle->new(
 );
 is($app_config2->current_revision, $new_revision,  "revision is correct even if we create a new instance");
 is($app_config2->system->email,    'test@abc.com', "email is updated");
+sleep 1; # Ensure the new entry is recorded at a different time
 # force check & trigger internal timer
 $app_config2->check_for_update;
 $app_config->system->email('test2@abc.com');
@@ -42,5 +43,9 @@ is($app_config2->system->email, 'test@abc.com', "still have old value");
 sleep($app_config2->refresh_interval);
 $app_config2->check_for_update;
 is($app_config2->system->email, 'test2@abc.com', "check_for_update worked");
+
+is($app_config2->get_history('system.email', 0), 'test2@abc.com', 'History retrived successfully');
+is($app_config2->get_history('system.email', 1), 'test@abc.com', 'History retrived successfully');
+is($app_config2->get_history('system.email', 2), 'test@abc.com', 'History retrived successfully');
 
 done_testing;
