@@ -46,6 +46,5 @@ is($app_config2->system->email, 'test2@abc.com', "check_for_update worked");
 
 is($app_config2->get_history('system.email', 0), 'test2@abc.com', 'History retrieved successfully');
 is($app_config2->get_history('system.email', 1), 'test@abc.com', 'History retrieved successfully');
-is($app_config2->get_history('system.email', 2), 'test@abc.com', 'History retrieved successfully');
 
 done_testing;
