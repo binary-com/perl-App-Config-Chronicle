@@ -384,7 +384,7 @@ sub get_history {
                 rev     => $rev
             },
             Date::Utility->new,
-            0
+            0 #<-- disables archiving
         ) if $setting && $self->cache_last_get_history;
     }
 
