@@ -329,7 +329,12 @@ sub save_dynamic {
             # New (individual save)
             my $old = $self->chronicle_reader->get($self->setting_namespace, $key) || [''];
             my $new = $self->data_set->{global}->get($key);
-            $self->chronicle_writer->set($self->setting_namespace, $key, [$new], Date::Utility->new) if $new ne $old->[0];
+            if ($new ne $old->[0]) {
+                # A new value means any cached history is stale, so force to blank and expire in 1 second
+                $self->chronicle_writer->set($self->setting_namespace, $key . '::Rev', {}, Date::Utility->new, 0, 1) if $self->cache_last_get_history;
+                # Save the new value
+                $self->chronicle_writer->set($self->setting_namespace, $key, [$new], Date::Utility->new);
+            }
         }
     }
 
@@ -352,10 +357,38 @@ sub current_revision {
     return $settings->{_rev};
 }
 
+has cache_last_get_history => (
+    isa     => 'Bool',
+    is      => 'ro',
+    default => 0,
+);
+
 sub get_history {
     my ($self, $key, $rev) = @_;
-    my $setting = $self->chronicle_reader->get_history($self->setting_namespace, $key, $rev);
-    return $setting->[0];
+    my ($cached_rev, $setting);
+
+    # Check for cached copy
+    $cached_rev = $self->chronicle_reader->get($self->setting_namespace, $key . '::Rev') if $self->cache_last_get_history;
+    $setting = $cached_rev->{setting} if (exists $cached_rev->{rev} && exists $cached_rev->{setting} && $cached_rev->{rev} == $rev);
+
+    unless ($setting) {
+        # Lookup from db
+        $setting = $self->chronicle_reader->get_history($self->setting_namespace, $key, $rev);
+
+        # Cache without archiving
+        $self->chronicle_writer->set(
+            $self->setting_namespace,
+            $key . '::Rev',
+            {
+                setting => $setting,
+                rev     => $rev
+            },
+            Date::Utility->new,
+            0
+        ) if $setting && $self->cache_last_get_history;
+    }
+
+    return $setting->[0] if $setting;
 }
 
 sub _build_data_set {
