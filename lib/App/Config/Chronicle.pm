@@ -312,7 +312,7 @@ sub check_for_update {
 
 =head2 save_dynamic
 
-Save synamic settings into chronicle db
+Save dynamic settings into chronicle db
 
 =cut
 
