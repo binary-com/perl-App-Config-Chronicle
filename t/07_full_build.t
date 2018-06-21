@@ -1,5 +1,6 @@
 use Test::Most;
 use Test::Warn;
+use Test::MockModule;
 use Data::Chronicle::Mock;
 use App::Config::Chronicle;
 use FindBin qw($Bin);
@@ -28,6 +29,7 @@ my $app_config2 = App::Config::Chronicle->new(
     chronicle_reader => $chronicle_r,
     chronicle_writer => $chronicle_w,
     refresh_interval => 1,
+    cache_last_get_history => 1,
 );
 is($app_config2->current_revision, $new_revision,  "revision is correct even if we create a new instance");
 is($app_config2->system->email,    'test@abc.com', "email is updated");
@@ -44,7 +46,15 @@ sleep($app_config2->refresh_interval);
 $app_config2->check_for_update;
 is($app_config2->system->email, 'test2@abc.com', "check_for_update worked");
 
+# Test get_history
 is($app_config2->get_history('system.email', 0), 'test2@abc.com', 'History retrieved successfully');
 is($app_config2->get_history('system.email', 1), 'test@abc.com', 'History retrieved successfully');
+
+# Ensure most recent get_history is cached (i.e. get_history should not be called)
+my $module = Test::MockModule->new('Data::Chronicle::Reader');
+$module->mock('get_history', sub { ok(0, 'get_history should not be called here') });
+is($app_config2->get_history('system.email', 1), 'test@abc.com', 'History retrieved successfully');
+$module->unmock('get_history');
+
 
 done_testing;
