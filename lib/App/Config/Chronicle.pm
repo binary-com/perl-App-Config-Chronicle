@@ -357,11 +357,33 @@ sub current_revision {
     return $settings->{_rev};
 }
 
+=head2 cache_last_get_history
+
+If enabled, then a call to get_history will cache the result for fast lookup.
+The last call for each $key will be cached.
+
+So, a subsequent call with the same $key and $rev will not access the database.
+
+If save_dynamic is called, any cached history for a modified $key will become stale,
+    and it will be removed.
+=cut
+
 has cache_last_get_history => (
     isa     => 'Bool',
     is      => 'ro',
     default => 0,
 );
+
+=head2 get_history
+
+Retreives a past revision of an app config entry, where $rev is the number of revisions in the past requested.
+
+Example:
+    get_history('system.email', 0); Retrieves current version
+    get_history('system.email', 1); Retreives previous revision
+    get_history('system.email', 2); Retreives version before previous
+
+=cut
 
 sub get_history {
     my ($self, $key, $rev) = @_;
