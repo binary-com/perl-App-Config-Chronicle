@@ -413,6 +413,38 @@ sub get_history {
     return $setting->[0] if $setting;
 }
 
+=head2 subscribe
+
+Subscribes to changes for the specified $key with the sub $subref called when a new value is set.
+The chronicle_writer must have publish_on_set enabled.
+
+=cut
+
+sub subscribe {
+    my ($self, $key, $subref) = @_;
+    die 'cache_writer must have publish_on_set enabled' unless $self->chronicle_writer->publish_on_set;
+    die 'Subscription requires a coderef' if ref $subref ne 'CODE';
+
+    my $underlying_key = $self->setting_namespace . '::' . $key;
+    $self->chronicle_writer->cache_writer->subscribe($underlying_key, $subref);
+}
+
+=head2 unsubscribe
+
+Stops the sub $subref from being called when $key is set with a new value.
+The chronicle_writer must have publish_on_set enabled.
+
+=cut
+
+sub unsubscribe {
+    my ($self, $key, $subref) = @_;
+    die 'cache_writer must have publish_on_set enabled' unless $self->chronicle_writer->publish_on_set;
+    die 'Subscription requires a coderef' if ref $subref ne 'CODE';
+
+    my $underlying_key = $self->setting_namespace . '::' . $key;
+    $self->chronicle_writer->cache_writer->unsubscribe($underlying_key, $subref);
+}
+
 sub _build_data_set {
     my $self = shift;
 
