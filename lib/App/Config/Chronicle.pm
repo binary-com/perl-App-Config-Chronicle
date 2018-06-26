@@ -58,6 +58,7 @@ use App::Config::Chronicle::Attribute::Section;
 use App::Config::Chronicle::Attribute::Global;
 use Data::Hash::DotNotation;
 
+use lib '/home/git/binary-com/perl-Data-Chronicle/lib';
 use Data::Chronicle::Reader;
 use Data::Chronicle::Writer;
 
@@ -357,6 +358,75 @@ sub current_revision {
     return $settings->{_rev};
 }
 
+######################################################
+###### New API stuff here
+######################################################
+
+has perl_level_caching => (
+    isa     => 'Bool',
+    is      => 'ro',
+    default => 1,
+);
+
+# Save/load Perl cache
+sub check_for_updates() {
+    # Load from Redis into Perl cache
+}
+
+sub save_updates() {
+    # Save from Perl cache to Redis as one transaction
+}
+
+# Setter
+sub set {
+    my ($self, $pairs) = @_;
+    my @atomic_pairs   = ();
+
+    foreach my $key (keys %$pairs) {
+        my $val = $pairs->{$key};
+        
+        # Prepare for atomic chronicle write
+        push @atomic_pairs, [$self->setting_namespace, $key, [$val]];
+
+        # Set Perl cache or write to Redis
+        $self->{$key} = $val if $self->perl_level_caching;
+
+        # Add to legacy structure
+        $self->data_set->{global}->set($key, $val);
+    }
+
+    # Do atomic chronicle write
+    $self->chronicle_writer->mset(\@atomic_pairs, Date::Utility->new) unless $self->perl_level_caching;
+}
+
+# Getters
+sub get {
+    my ($self, $keys) = @_;
+
+    if (ref $keys eq '') {
+        # Get from Perl cache or retrieve from chronicle
+        return $self->{$keys} if $self->perl_level_caching;
+        return $self->chronicle_reader->get($self->setting_namespace, $keys)->[0] unless $self->perl_level_caching;
+    }
+    
+    if (ref $keys eq 'ARRAY') {
+        my @atomic_pairs = ();
+        my @return_vals  = ();
+        # Get from Perl cache or retrieve atomically from chronicle
+        foreach my $key (@$keys) {
+            # Prepare for atomic chronicle write
+            push @atomic_pairs, [$self->setting_namespace, $key] unless $self->perl_level_caching;
+    
+            # Set Perl cache or write to Redis
+            push @return_vals, $self->{$key} if $self->perl_level_caching;
+        }
+        return @return_vals if $self->perl_level_caching;
+
+        # Do atomic chronicle read
+        return map { $_->[0] } $self->chronicle_reader->mget(@atomic_pairs);
+    }
+}
+
 =head2 cache_last_get_history
 
 If enabled, then a call to get_history will cache the result for fast lookup.
@@ -444,6 +514,10 @@ sub unsubscribe {
     my $underlying_key = $self->setting_namespace . '::' . $key;
     $self->chronicle_writer->cache_writer->unsubscribe($underlying_key, $subref);
 }
+
+######################################################
+###### End new API stuff
+######################################################
 
 sub _build_data_set {
     my $self = shift;
