@@ -1,6 +1,7 @@
 use Test::Most;
 use Test::Warn;
 use Test::MockModule;
+use lib '/home/git/binary-com/perl-Data-Chronicle/lib';
 use Data::Chronicle::Mock;
 use App::Config::Chronicle;
 use FindBin qw($Bin);
@@ -55,6 +56,12 @@ my $module = Test::MockModule->new('Data::Chronicle::Reader');
 $module->mock('get_history', sub { ok(0, 'get_history should not be called here') });
 is($app_config2->get_history('system.email', 1), 'test@abc.com', 'History retrieved successfully');
 $module->unmock('get_history');
+
+$app_config2->set({animal => 'cats', plant => 'trees'});
+
+use Data::Dumper;
+#warn Dumper($app_config2->get(['animal','plant']));
+
 
 
 done_testing;
