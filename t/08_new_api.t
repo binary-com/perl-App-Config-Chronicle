@@ -38,9 +38,10 @@ subtest 'Batch set and get' => sub {
 };
 
 subtest 'History chronicling' => sub {
-    my $app_config = _new_app_config();
+    my $app_config = _new_app_config(cache_last_get_history => 1);
+    my $module = Test::MockModule->new('Data::Chronicle::Reader');
 
-    subtest 'Added history of values' => sub {
+    subtest 'Add history of values' => sub {
         # Sleeps ensure the chronicle records them at different times
         ok $app_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set 1st value succeeds';
         sleep 1;
@@ -56,28 +57,57 @@ subtest 'History chronicling' => sub {
     };
 
     subtest 'Ensure most recent get_history is cached (i.e. get_history should not be called)' => sub {
-        my $module = Test::MockModule->new('Data::Chronicle::Reader');
         $module->mock('get_history', sub { ok(0, 'get_history should not be called here') });
-        is($app_config->get_history(EMAIL_KEY, 2), FIRST_EMAIL, 'History retrieved successfully');
+        is($app_config->get_history(EMAIL_KEY, 2), FIRST_EMAIL, 'Email retrieved via cache');
+        $module->unmock('get_history');
+    };
+
+    subtest 'Check caching can be disabled' => sub {
+        plan tests => 3;    # Ensures the ok check inside the mocked sub is run
+
+        $app_config = _new_app_config_from_existing($app_config, cache_last_get_history => 0);
+        $module->mock('get_history', sub { ok(1, 'get_history should be called here'); [FIRST_EMAIL] });
+        is($app_config->get_history(EMAIL_KEY, 2), FIRST_EMAIL, 'Email retrieved via chronicle');
         $module->unmock('get_history');
     };
 };
 
 sub _new_app_config {
     my $app_config;
+    my %options = @_;
+
     subtest 'Setup' => sub {
         my ($chronicle_r, $chronicle_w) = Data::Chronicle::Mock::get_mocked_chronicle();
         lives_ok {
             $app_config = App::Config::Chronicle->new(
-                definition_yml         => "$Bin/test.yml",
-                chronicle_reader       => $chronicle_r,
-                chronicle_writer       => $chronicle_w,
-                cache_last_get_history => 1,
+                definition_yml   => "$Bin/test.yml",
+                chronicle_reader => $chronicle_r,
+                chronicle_writer => $chronicle_w,
+                %options
             );
         }
         'We are living';
     };
     return $app_config;
+}
+
+sub _new_app_config_from_existing {
+    my $new_app_config;
+    my $old_app_config = shift;
+    my %options        = @_;
+
+    subtest 'Setup' => sub {
+        lives_ok {
+            $new_app_config = App::Config::Chronicle->new(
+                definition_yml   => "$Bin/test.yml",
+                chronicle_reader => $old_app_config->chronicle_reader,
+                chronicle_writer => $old_app_config->chronicle_writer,
+                %options
+            );
+        }
+        'We are living';
+    };
+    return $new_app_config;
 }
 
 done_testing;
