@@ -384,12 +384,13 @@ sub set {
 
     foreach my $key (keys %$pairs) {
         my $val = $pairs->{$key};
+        my $chron_obj = {data => $val};
 
         # Prepare for atomic chronicle write
-        push @atomic_pairs, [$self->setting_namespace, $key, [$val]];
+        push @atomic_pairs, [$self->setting_namespace, $key, $chron_obj];
 
         # Set Perl cache or write to Redis
-        $self->{$key} = $val if $self->perl_level_caching;
+        $self->{$key} = $chron_obj if $self->perl_level_caching;
 
         # Add to legacy structure
         $self->data_set->{global}->set($key, $val);
@@ -407,8 +408,8 @@ sub get {
 
     if (ref $keys eq '') {
         # Get from Perl cache or retrieve from chronicle
-        return $self->{$keys} if $self->perl_level_caching;
-        return $self->chronicle_reader->get($self->setting_namespace, $keys)->[0] unless $self->perl_level_caching;
+        return $self->{$keys}->{data} if $self->perl_level_caching;
+        return $self->chronicle_reader->get($self->setting_namespace, $keys)->{data} unless $self->perl_level_caching;
     }
 
     if (ref $keys eq 'ARRAY') {
@@ -420,12 +421,12 @@ sub get {
             push @atomic_pairs, [$self->setting_namespace, $key] unless $self->perl_level_caching;
 
             # Set Perl cache or write to Redis
-            push @return_vals, $self->{$key} if $self->perl_level_caching;
+            push @return_vals, $self->{$key->{data}} if $self->perl_level_caching;
         }
         return @return_vals if $self->perl_level_caching;
 
         # Do atomic chronicle read
-        return map { $_->[0] } $self->chronicle_reader->mget(\@atomic_pairs);
+        return map { $_->{data} } $self->chronicle_reader->mget(\@atomic_pairs);
     }
 
     return undef;
@@ -484,7 +485,7 @@ sub get_history {
         ) if $setting && $self->cache_last_get_history;
     }
 
-    return $setting->[0] if $setting;
+    return $setting->{data} if $setting;
 }
 
 =head2 subscribe
