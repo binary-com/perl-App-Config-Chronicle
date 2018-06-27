@@ -65,7 +65,7 @@ subtest 'History chronicling' => sub {
     subtest 'Check caching can be disabled' => sub {
         plan tests => 3;    # Ensures the ok check inside the mocked sub is run
 
-        $app_config = _new_app_config_from_existing($app_config, cache_last_get_history => 0);
+        $app_config = _new_app_config(cache_last_get_history => 0);
         $module->mock('get_history', sub { ok(1, 'get_history should be called here'); {data => FIRST_EMAIL} });
         is($app_config->get_history(EMAIL_KEY, 2), FIRST_EMAIL, 'Email retrieved via chronicle');
         $module->unmock('get_history');
@@ -133,23 +133,5 @@ sub _new_app_config {
     return $app_config;
 }
 
-sub _new_app_config_from_existing {
-    my $new_app_config;
-    my $old_app_config = shift;
-    my %options        = @_;
-
-    subtest 'Setup' => sub {
-        lives_ok {
-            $new_app_config = App::Config::Chronicle->new(
-                definition_yml   => "$Bin/test.yml",
-                chronicle_reader => $old_app_config->chronicle_reader,
-                chronicle_writer => $old_app_config->chronicle_writer,
-                %options
-            );
-        }
-        'We are living';
-    };
-    return $new_app_config;
-}
 
 done_testing;
