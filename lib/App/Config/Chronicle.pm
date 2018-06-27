@@ -384,7 +384,11 @@ sub set {
 
     foreach my $key (keys %$pairs) {
         my $val = $pairs->{$key};
-        my $chron_obj = {data => $val};
+        my $rev = time;
+        my $chron_obj = {
+            data => $val,
+            _rev => $rev,
+        };
 
         # Prepare for atomic chronicle write
         push @atomic_pairs, [$self->setting_namespace, $key, $chron_obj];
