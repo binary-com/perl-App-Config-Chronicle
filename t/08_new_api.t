@@ -20,6 +20,12 @@ subtest 'Global revision = 0' => sub {
     is $app_config->global_revision(), 0, 'Brand new app config returns 0 revision';
 };
 
+subtest 'Keys' => sub {
+    my $app_config = _new_app_config();
+    my @keys = $app_config->_keys();
+    is_deeply \@keys, [EMAIL_KEY], 'Keys are listed correctly';
+};
+
 subtest 'Basic set and get' => sub {
     my $app_config = _new_app_config();
 

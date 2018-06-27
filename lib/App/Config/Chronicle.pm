@@ -544,6 +544,11 @@ sub unsubscribe {
     $self->chronicle_writer->cache_writer->unsubscribe($underlying_key, $subref);
 }
 
+sub _keys {
+    my $self = shift;
+    return keys %{$self->dynamic_settings_info->{global}};
+};
+
 ######################################################
 ###### End new API stuff
 ######################################################
