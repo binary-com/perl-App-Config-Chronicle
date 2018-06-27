@@ -369,12 +369,43 @@ has perl_level_caching => (
 );
 
 # Save/load Perl cache
-sub check_for_updates() {
-    # Load from Redis into Perl cache
-}
+sub cache_sync() {
+    # Sync cache with Redis as one transaction
+    my $self = shift;
+    die 'Perl caching not enabled' if $self->perl_level_caching;
 
-sub save_updates() {
-    # Save from Perl cache to Redis as one transaction
+    # Start redis transaction!
+    $self->chronicle_writer->cache_writer->multi;
+
+    # Compare cached global rev to chron global rev
+    # If they match, we're up to date!
+    my $rev_cache = $self->{_rev};
+    my $rev_global = $self->chronicle_reader->get($self->setting_namespace, '_rev');
+    return if $rev_cache == $rev_global;
+
+    # If they don't, we need to sync:
+    # Per key (inc global _rev):
+    my @keys = $self->_keys();
+    push @keys, '_rev';
+    for my $k (@keys) {
+        # Get cached _rev and chron _rev
+        my $cache = $self->{$k};
+        my $chron = $self->chronicle_reader->get($self->setting_namespace, $k);
+        $rev_cache = $cache ? $cache->{_rev} : 0;
+        $rev_global = $chron ? $chron->{_rev} : 0;
+        # If same, do nothing
+        next if $rev_cache == $rev_global;
+        # If different, replace whichever is older
+        if ($rev_cache < $rev_global) {
+            $self->{$k} = $chron;
+        }
+        elsif ($rev_global < $rev_cache) {
+            $self->chronicle_writer->set($self->setting_namespace, $k, $cache);
+        }
+    }
+
+    # End redis transacton!
+    $self->chronicle_writer->cache_writer->exec;
 }
 
 sub global_revision {
