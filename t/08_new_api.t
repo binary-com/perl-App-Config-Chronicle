@@ -15,6 +15,11 @@ use constant {
     ADMINS_SET   => ['john', 'bob', 'jane', 'susan'],
 };
 
+subtest 'Global revision = 0' => sub {
+    my $app_config = _new_app_config();
+    is $app_config->global_revision(), 0, 'Brand new app config returns 0 revision';
+};
+
 subtest 'Basic set and get' => sub {
     my $app_config = _new_app_config();
 
@@ -112,6 +117,16 @@ subtest 'Perl level caching' => sub {
         $reader_module->unmock('mget');
         $writer_module->unmock('mset');
     };
+};
+
+subtest 'Global revision updates' => sub {
+    my $app_config = _new_app_config(cache_last_get_history => 1);
+    my $old_rev = $app_config->global_revision();
+
+    ok $app_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set 1 value succeeds';
+
+    my $new_rev = $app_config->global_revision();
+    ok $new_rev > $old_rev, 'Revision was increased';
 };
 
 sub _new_app_config {

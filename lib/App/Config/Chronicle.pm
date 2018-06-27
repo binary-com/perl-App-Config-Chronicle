@@ -377,17 +377,29 @@ sub save_updates() {
     # Save from Perl cache to Redis as one transaction
 }
 
+sub global_revision {
+    my $self = shift;
+    my $rev;
+
+    $rev = $self->{_rev} if $self->perl_level_caching;
+    $rev = $self->chronicle_reader->get($self->setting_namespace, '_rev') unless $self->perl_level_caching;
+
+    return $rev->{data} if $rev;
+    return 0;
+}
+
 # Setter
 sub set {
     my ($self, $pairs) = @_;
     my @atomic_pairs = ();
+    my $rev = Date::Utility->new;
+    my $rev_epoch = $rev->{epoch};
 
     foreach my $key (keys %$pairs) {
         my $val = $pairs->{$key};
-        my $rev = time;
         my $chron_obj = {
             data => $val,
-            _rev => $rev,
+            _rev => $rev_epoch,
         };
 
         # Prepare for atomic chronicle write
@@ -399,9 +411,17 @@ sub set {
         # Add to legacy structure
         $self->data_set->{global}->set($key, $val);
     }
+    # Set global rev
+    my $global_rev = {
+        data => $rev_epoch,
+        _rev => $rev_epoch,
+    };
+
+    $self->{_rev} = $global_rev if $self->perl_level_caching;
 
     # Do atomic chronicle write
-    $self->chronicle_writer->mset(\@atomic_pairs, Date::Utility->new) unless $self->perl_level_caching;
+    push @atomic_pairs, [$self->setting_namespace, '_rev', $global_rev];
+    $self->chronicle_writer->mset(\@atomic_pairs, $rev) unless $self->perl_level_caching;
 
     return 1;
 }
