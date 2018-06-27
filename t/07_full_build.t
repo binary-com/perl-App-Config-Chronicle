@@ -1,6 +1,5 @@
 use Test::Most;
 use Test::Warn;
-use lib '/home/git/binary-com/perl-Data-Chronicle/lib';
 use Data::Chronicle::Mock;
 use App::Config::Chronicle;
 use FindBin qw($Bin);
