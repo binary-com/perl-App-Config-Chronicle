@@ -365,7 +365,7 @@ sub current_revision {
 has perl_level_caching => (
     isa     => 'Bool',
     is      => 'ro',
-    default => 1,
+    default => 0,
 );
 
 # Save/load Perl cache
@@ -380,11 +380,11 @@ sub save_updates() {
 # Setter
 sub set {
     my ($self, $pairs) = @_;
-    my @atomic_pairs   = ();
+    my @atomic_pairs = ();
 
     foreach my $key (keys %$pairs) {
         my $val = $pairs->{$key};
-        
+
         # Prepare for atomic chronicle write
         push @atomic_pairs, [$self->setting_namespace, $key, [$val]];
 
@@ -397,6 +397,8 @@ sub set {
 
     # Do atomic chronicle write
     $self->chronicle_writer->mset(\@atomic_pairs, Date::Utility->new) unless $self->perl_level_caching;
+
+    return 1;
 }
 
 # Getters
@@ -408,7 +410,7 @@ sub get {
         return $self->{$keys} if $self->perl_level_caching;
         return $self->chronicle_reader->get($self->setting_namespace, $keys)->[0] unless $self->perl_level_caching;
     }
-    
+
     if (ref $keys eq 'ARRAY') {
         my @atomic_pairs = ();
         my @return_vals  = ();
@@ -416,15 +418,17 @@ sub get {
         foreach my $key (@$keys) {
             # Prepare for atomic chronicle write
             push @atomic_pairs, [$self->setting_namespace, $key] unless $self->perl_level_caching;
-    
+
             # Set Perl cache or write to Redis
             push @return_vals, $self->{$key} if $self->perl_level_caching;
         }
         return @return_vals if $self->perl_level_caching;
 
         # Do atomic chronicle read
-        return map { $_->[0] } $self->chronicle_reader->mget(@atomic_pairs);
+        return map { $_->[0] } $self->chronicle_reader->mget(\@atomic_pairs);
     }
+
+    return undef;
 }
 
 =head2 cache_last_get_history
@@ -476,7 +480,7 @@ sub get_history {
                 rev     => $rev
             },
             Date::Utility->new,
-            0 #<-- disables archiving
+            0    #<-- disables archiving
         ) if $setting && $self->cache_last_get_history;
     }
 
