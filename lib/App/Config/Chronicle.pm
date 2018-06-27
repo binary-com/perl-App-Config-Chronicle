@@ -496,7 +496,7 @@ The chronicle_writer must have publish_on_set enabled.
 
 sub subscribe {
     my ($self, $key, $subref) = @_;
-    die 'cache_writer must have publish_on_set enabled' unless $self->chronicle_writer->publish_on_set;
+    die 'chronicle_writer must have publish_on_set enabled' unless $self->chronicle_writer->publish_on_set;
     die 'Subscription requires a coderef' if ref $subref ne 'CODE';
 
     my $underlying_key = $self->setting_namespace . '::' . $key;
@@ -512,8 +512,8 @@ The chronicle_writer must have publish_on_set enabled.
 
 sub unsubscribe {
     my ($self, $key, $subref) = @_;
-    die 'cache_writer must have publish_on_set enabled' unless $self->chronicle_writer->publish_on_set;
-    die 'Subscription requires a coderef' if ref $subref ne 'CODE';
+    die 'chronicle_writer must have publish_on_set enabled' unless $self->chronicle_writer->publish_on_set;
+    die 'Unsubscription requires a coderef' if ref $subref ne 'CODE';
 
     my $underlying_key = $self->setting_namespace . '::' . $key;
     $self->chronicle_writer->cache_writer->unsubscribe($underlying_key, $subref);
