@@ -389,17 +389,17 @@ sub update_cache() {
     push @atomic_pairs, [$self->setting_namespace, $_] foreach (@keys);
     my @entries = $self->chronicle_reader->mget(\@atomic_pairs);
 
-    for my $i (0..$keys) {
+    foreach my $i (0..scalar @keys) {
         # Get cached _rev and chron _rev
-        my $cache = $self->{$keys[i]};
-        my $chron = $entries[i];
+        my $cache = $self->{$keys[$i]};
+        my $chron = $entries[$i];
         $rev_cache = $cache ? $cache->{_rev} : 0;
         $rev_global = $chron ? $chron->{_rev} : 0;
         # If same, do nothing
         next if $rev_cache == $rev_global;
         # Update cache is outdated
         if ($rev_cache < $rev_global) {
-            $self->{$k} = $chron;
+            $self->{$keys[$i]} = $chron;
         }
     }
 }
