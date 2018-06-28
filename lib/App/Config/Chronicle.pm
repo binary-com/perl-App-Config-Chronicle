@@ -372,12 +372,12 @@ has perl_level_caching => (
 sub update_cache() {
     # Sync cache with Redis as one transaction
     my $self = shift;
-    die 'Perl caching not enabled' if $self->perl_level_caching;
+    die 'Perl caching not enabled' unless $self->perl_level_caching;
 
     # Compare cached global rev to chron global rev
     # If they match, we're up to date!
-    my $rev_cache = $self->{_rev};
-    my $rev_global = $self->chronicle_reader->get($self->setting_namespace, '_rev');
+    my $rev_cache = $self->{_rev} // 0;
+    my $rev_global = $self->chronicle_reader->get($self->setting_namespace, '_rev') // 0;
     return if $rev_cache == $rev_global;
 
     # If they don't, we need to sync:
@@ -389,12 +389,12 @@ sub update_cache() {
     push @atomic_pairs, [$self->setting_namespace, $_] foreach (@keys);
     my @entries = $self->chronicle_reader->mget(\@atomic_pairs);
 
-    foreach my $i (0..scalar @keys) {
+    foreach my $i (0 .. scalar @keys - 1) {
         # Get cached _rev and chron _rev
         my $cache = $self->{$keys[$i]};
         my $chron = $entries[$i];
-        $rev_cache = $cache ? $cache->{_rev} : 0;
-        $rev_global = $chron ? $chron->{_rev} : 0;
+        $rev_cache  = $cache ? $cache->{_rev} // 0 : 0;
+        $rev_global = $chron ? $chron->{_rev} // 0 : 0;
         # If same, do nothing
         next if $rev_cache == $rev_global;
         # Update cache is outdated
@@ -402,6 +402,8 @@ sub update_cache() {
             $self->{$keys[$i]} = $chron;
         }
     }
+
+    return 1;
 }
 
 sub global_revision {
@@ -419,11 +421,11 @@ sub global_revision {
 sub set {
     my ($self, $pairs) = @_;
     my @atomic_pairs = ();
-    my $rev = Date::Utility->new;
-    my $rev_epoch = $rev->{epoch};
+    my $rev          = Date::Utility->new;
+    my $rev_epoch    = $rev->{epoch};
 
     foreach my $key (keys %$pairs) {
-        my $val = $pairs->{$key};
+        my $val       = $pairs->{$key};
         my $chron_obj = {
             data => $val,
             _rev => $rev_epoch,
@@ -574,7 +576,7 @@ sub unsubscribe {
 sub _keys {
     my $self = shift;
     return keys %{$self->dynamic_settings_info->{global}};
-};
+}
 
 ######################################################
 ###### End new API stuff

@@ -22,7 +22,7 @@ subtest 'Global revision = 0' => sub {
 
 subtest 'Keys' => sub {
     my $app_config = _new_app_config();
-    my @keys = $app_config->_keys();
+    my @keys       = $app_config->_keys();
     is_deeply \@keys, [EMAIL_KEY], 'Keys are listed correctly';
 };
 
@@ -130,6 +130,31 @@ subtest 'Global revision updates' => sub {
     ok $new_rev > $old_rev, 'Revision was increased';
 };
 
+subtest 'Cache syncing' => sub {
+    my $cached_config1 = _new_app_config(perl_level_caching => 1);
+    my $cached_config2 = _new_app_config(perl_level_caching => 1);
+    my $direct_config  = _new_app_config(perl_level_caching => 0);
+
+    ok $direct_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set email succeeds';
+    is $direct_config->get(EMAIL_KEY), FIRST_EMAIL, 'Email is retrieved successfully';
+    is $cached_config1->get(EMAIL_KEY), undef, 'Cache1 is empty';
+    is $cached_config2->get(EMAIL_KEY), undef, 'Cache2 is empty';
+
+    ok $cached_config1->update_cache(), 'Cache 1 is updated';
+    ok $cached_config2->update_cache(), 'Cache 2 is updated';
+    is $cached_config1->get(EMAIL_KEY), FIRST_EMAIL, 'Cache1 is updated with email';
+    is $cached_config2->get(EMAIL_KEY), FIRST_EMAIL, 'Cache2 is updated with email';
+
+    sleep 1; #Ensure new value is recorded at a different time
+    ok $cached_config1->set({EMAIL_KEY() => SECOND_EMAIL}), 'Set email via cache 1 succeeds';
+    is $direct_config->get(EMAIL_KEY), SECOND_EMAIL, 'Email is retrieved directly';
+    is $cached_config1->get(EMAIL_KEY), SECOND_EMAIL, 'Cache1 has updated email';
+    is $cached_config2->get(EMAIL_KEY), FIRST_EMAIL, 'Cache2 still has old email';
+    
+    ok $cached_config2->update_cache(), 'Cache 2 is updated';
+    is $cached_config2->get(EMAIL_KEY), SECOND_EMAIL, 'Cache2 has updated email';
+};
+
 sub _new_app_config {
     my $app_config;
     my %options = @_;
@@ -148,6 +173,5 @@ sub _new_app_config {
     };
     return $app_config;
 }
-
 
 done_testing;
