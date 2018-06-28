@@ -4,6 +4,7 @@ package App::Config::Chronicle;
 use strict;
 use warnings;
 use Time::HiRes qw(time);
+use List::Util qw(any);
 
 =head1 NAME
 
@@ -38,6 +39,11 @@ The configuration file is a YAML file. Here is an example:
           description: "Dummy email address"
           isa: Str
           default: "dummy@mail.com"
+          global: 1
+        refresh:
+          description: "System refresh rate"
+          isa: Num
+          default: 10
           global: 1
         admins:
           description: "Are we on Production?"
@@ -388,7 +394,7 @@ sub update_cache() {
 
     # If they don't, we need to sync:
     # Per key (inc global _rev):
-    my @keys = $self->_keys();
+    my @keys = $self->_dynamic_keys();
     push @keys, '_rev';
 
     my @atomic_pairs = ();
@@ -431,6 +437,9 @@ sub set {
     my $rev_epoch    = $rev->{epoch};
 
     foreach my $key (keys %$pairs) {
+        # Check key is valid
+        die "Cannot set with key: $key | Key must be defined with 'global: 1'" unless any { $key eq $_ } $self->_dynamic_keys();
+
         my $val       = $pairs->{$key};
         my $chron_obj = {
             data => $val,
@@ -579,7 +588,7 @@ sub unsubscribe {
     $self->chronicle_writer->cache_writer->unsubscribe($underlying_key, $subref);
 }
 
-sub _keys {
+sub _dynamic_keys {
     my $self = shift;
     return keys %{$self->dynamic_settings_info->{global}};
 }

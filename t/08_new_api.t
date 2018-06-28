@@ -13,6 +13,8 @@ use constant {
     THIRD_EMAIL  => 'ghi@test.com',
     ADMINS_KEY   => 'system.admins',
     ADMINS_SET   => ['john', 'bob', 'jane', 'susan'],
+    REFRESH_KEY  => 'system.refresh',
+    REFRESH_SET  => 20,
 };
 
 subtest 'Global revision = 0' => sub {
@@ -20,10 +22,10 @@ subtest 'Global revision = 0' => sub {
     is $app_config->global_revision(), 0, 'Brand new app config returns 0 revision';
 };
 
-subtest 'Keys' => sub {
+subtest 'Dynamic keys' => sub {
     my $app_config = _new_app_config();
-    my @keys       = $app_config->_keys();
-    is_deeply \@keys, [EMAIL_KEY], 'Keys are listed correctly';
+    my @keys       = $app_config->_dynamic_keys();
+    is_deeply \@keys, [EMAIL_KEY, REFRESH_KEY], 'Keys are listed correctly';
 };
 
 subtest 'Basic set and get' => sub {
@@ -37,15 +39,23 @@ subtest 'Batch set and get' => sub {
     my $app_config = _new_app_config();
 
     ok $app_config->set({
-            EMAIL_KEY()  => FIRST_EMAIL,
-            ADMINS_KEY() => ADMINS_SET
+            EMAIL_KEY()   => FIRST_EMAIL,
+            REFRESH_KEY() => REFRESH_SET
         }
         ),
         'Set 2 values succeeds';
 
-    ok my @res = $app_config->get([EMAIL_KEY, ADMINS_KEY]);
-    is $res[0],        FIRST_EMAIL, 'Email is retrieved successfully';
-    is_deeply $res[1], ADMINS_SET,  'Admins is retrieved successfully';
+    ok my @res = $app_config->get([EMAIL_KEY, REFRESH_KEY]);
+    is $res[0], FIRST_EMAIL, 'Email is retrieved successfully';
+    is $res[1], REFRESH_SET, 'Refresh is retrieved successfully';
+};
+
+subtest 'Attempt to set non-dynamic key' => sub {
+    my $app_config = _new_app_config();
+    throws_ok {
+        $app_config->set({ADMINS_KEY() => ADMINS_SET});
+    }
+    qr/Cannot set with key/;
 };
 
 subtest 'History chronicling' => sub {
