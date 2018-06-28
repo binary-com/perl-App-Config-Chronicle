@@ -334,14 +334,14 @@ sub save_dynamic {
             # Legacy (group save)
             $global->set($key, $self->data_set->{global}->get($key));
             # New (individual save)
-            my $old = $self->chronicle_reader->get($self->setting_namespace, $key) || [''];
-            my $new = $self->data_set->{global}->get($key);
-            if ($new ne $old->[0]) {
-                # A new value means any cached history is stale, so force to blank and expire in 1 second
-                $self->chronicle_writer->set($self->setting_namespace, $key . '::Rev', {}, Date::Utility->new, 0, 1) if $self->cache_last_get_history;
-                # Save the new value
-                $self->chronicle_writer->set($self->setting_namespace, $key, [$new], Date::Utility->new);
-            }
+            #my $old = $self->chronicle_reader->get($self->setting_namespace, $key) || {};
+            #my $new = $self->data_set->{global}->get($key);
+            #if ($new ne $old->{data}) {
+            #    # A new value means any cached history is stale, so force to blank and expire in 1 second
+            #    $self->chronicle_writer->set($self->setting_namespace, $key . '::Rev', {}, Date::Utility->new, 0, 1) if $self->cache_last_get_history;
+            #    # Save the new value
+            #    $self->chronicle_writer->set($self->setting_namespace, $key, [$new], Date::Utility->new);
+            #}
         }
     }
 
@@ -454,6 +454,9 @@ sub set {
 
         # Add to legacy structure
         $self->data_set->{global}->set($key, $val);
+
+        # A new value means any cached history is stale, so force to blank and expire in 1 second
+        $self->chronicle_writer->set($self->setting_namespace, $key . '::Rev', {}, Date::Utility->new, 0, 1) if $self->cache_last_get_history;
     }
     # Set global rev
     my $global_rev = {
@@ -485,10 +488,10 @@ sub get {
         my @return_vals  = ();
         # Get from Perl cache or retrieve atomically from chronicle
         foreach my $key (@$keys) {
-            # Prepare for atomic chronicle write
+            # Prepare for atomic chronicle read
             push @atomic_pairs, [$self->setting_namespace, $key] unless $self->perl_level_caching;
 
-            # Set Perl cache or write to Redis
+            # Get from Perl cache
             push @return_vals, $self->{$key->{data}} if $self->perl_level_caching;
         }
         return @return_vals if $self->perl_level_caching;
@@ -606,18 +609,6 @@ sub _keys {
 }
 
 sub _initialise {
-    my $self = shift;
-
-    # Populate key arrays
-    $self->_populate_keys($self->_defdb, '');
-
-    # Initialise chron with defaults if not already present
-
-    # Populate cache if enabled
-    #$self->update_cache() if $self->perl_level_caching;
-}
-
-sub _populate_keys {
     my ($self, $keys, $path) = @_;
 
     foreach my $key (keys %{$keys}) {
@@ -626,11 +617,22 @@ sub _populate_keys {
         my $fully_qualified_path = $path ? $path . '.' . $key : $key;
 
         if ($def->{isa} eq 'section') {
-            $self->_populate_keys($def->{contains}, $fully_qualified_path);
-        } elsif ($def->{global}) {
-            push @{$self->_dynamic_keys}, $fully_qualified_path;
+            $self->_initialise($def->{contains}, $fully_qualified_path);
         } else {
-            push @{$self->_static_keys}, $fully_qualified_path;
+            push @{$self->_dynamic_keys}, $fully_qualified_path if $def->{global};
+            push @{$self->_static_keys}, $fully_qualified_path unless $def->{global};
+            # Set default in Redis only if key doesn't already exist
+            if ($def->{default}) {
+                my $chron_obj = {
+                    data => $def->{default},
+                    _rev => 0,
+                };
+                use Encode qw(encode_utf8);
+                use JSON::MaybeXS;
+                my $underlying_key   = $self->setting_namespace . '::' . $fully_qualified_path;
+                my $underlying_value = encode_utf8(JSON::MaybeXS->new->encode($chron_obj));
+                $self->chronicle_writer->cache_writer->setnx($underlying_key, $underlying_value);
+            }
         }
     }
 }
@@ -693,7 +695,7 @@ sub BUILD {
     my $self = shift;
 
     $self->_build_class;
-    $self->_initialise;
+    $self->_initialise($self->_defdb, '');
 
     return;
 }

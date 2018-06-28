@@ -7,14 +7,16 @@ use App::Config::Chronicle;
 use FindBin qw($Bin);
 
 use constant {
-    EMAIL_KEY    => 'system.email',
-    FIRST_EMAIL  => 'abc@test.com',
-    SECOND_EMAIL => 'def@test.com',
-    THIRD_EMAIL  => 'ghi@test.com',
-    ADMINS_KEY   => 'system.admins',
-    ADMINS_SET   => ['john', 'bob', 'jane', 'susan'],
-    REFRESH_KEY  => 'system.refresh',
-    REFRESH_SET  => 20,
+    EMAIL_KEY     => 'system.email',
+    FIRST_EMAIL   => 'abc@test.com',
+    SECOND_EMAIL  => 'def@test.com',
+    THIRD_EMAIL   => 'ghi@test.com',
+    DEFAULT_EMAIL => 'dummy@email.com',
+    ADMINS_KEY    => 'system.admins',
+    ADMINS_SET    => ['john', 'bob', 'jane', 'susan'],
+    REFRESH_KEY   => 'system.refresh',
+    REFRESH_SET   => 20,
+    DEFAULT_REF   => 10,
 };
 
 subtest 'Global revision = 0' => sub {
@@ -38,6 +40,17 @@ subtest 'All keys' => sub {
     my $app_config = _new_app_config();
     my $keys       = $app_config->_keys;
     is_deeply $keys, [EMAIL_KEY, REFRESH_KEY, ADMINS_KEY], 'Keys are listed correctly';
+};
+
+subtest 'Default values' => sub {
+    my $app_config = _new_app_config();
+    is $app_config->get(EMAIL_KEY),   DEFAULT_EMAIL, 'Default email is returned';
+    is $app_config->get(REFRESH_KEY), DEFAULT_REF,   'Default refresh is returned';
+    is_deeply $app_config->get(ADMINS_KEY), [], 'Default admins are returned';
+
+    ok my @multi = $app_config->get([EMAIL_KEY, REFRESH_KEY]), 'Mget defaults is ok';
+    is $multi[0], DEFAULT_EMAIL, 'Default email is returned';
+    is $multi[1], DEFAULT_REF,   'Default refresh is returned';
 };
 
 subtest 'Basic set and get' => sub {
@@ -81,6 +94,7 @@ subtest 'History chronicling' => sub {
         ok $app_config->set({EMAIL_KEY() => SECOND_EMAIL}), 'Set 2nd value succeeds';
         sleep 1;
         ok $app_config->set({EMAIL_KEY() => THIRD_EMAIL}), 'Set 3rd value succeeds';
+        sleep 1;
     };
 
     subtest 'Get history' => sub {
@@ -93,6 +107,12 @@ subtest 'History chronicling' => sub {
         $module->mock('get_history', sub { ok(0, 'get_history should not be called here') });
         is($app_config->get_history(EMAIL_KEY, 2), FIRST_EMAIL, 'Email retrieved via cache');
         $module->unmock('get_history');
+    };
+
+    subtest 'Ensure cache goes stale when new is set' => sub {
+        is($app_config->get_history(EMAIL_KEY, 1), SECOND_EMAIL, 'Previous email is correct');
+        ok $app_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set email succeeds';
+        is($app_config->get_history(EMAIL_KEY, 1), THIRD_EMAIL, 'Correct previous email is returned');
     };
 
     subtest 'Check caching can be disabled' => sub {
