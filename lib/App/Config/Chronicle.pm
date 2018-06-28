@@ -612,15 +612,13 @@ sub _initialise {
     my ($self, $keys, $path) = @_;
 
     foreach my $key (keys %{$keys}) {
-        # TODO: add validation
         my $def = $keys->{$key};
         my $fully_qualified_path = $path ? $path . '.' . $key : $key;
 
         if ($def->{isa} eq 'section') {
             $self->_initialise($def->{contains}, $fully_qualified_path);
         } else {
-            push @{$self->_dynamic_keys}, $fully_qualified_path if $def->{global};
-            push @{$self->_static_keys}, $fully_qualified_path unless $def->{global};
+            push @{$def->{global} ? $self->_dynamic_keys : $self->_static_keys}, $fully_qualified_path;
             # Set default in Redis only if key doesn't already exist
             if ($def->{default}) {
                 my $chron_obj = {
