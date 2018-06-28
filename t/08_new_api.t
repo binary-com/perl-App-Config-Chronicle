@@ -90,17 +90,12 @@ subtest 'Perl level caching' => sub {
         my $reader_module = Test::MockModule->new('Data::Chronicle::Reader');
         $reader_module->mock('get',  sub { ok(0, 'get should not be called here') });
         $reader_module->mock('mget', sub { ok(0, 'mget should not be called here') });
-        my $writer_module = Test::MockModule->new('Data::Chronicle::Writer');
-        $writer_module->mock('set',  sub { ok(0, 'set should not be called here') });
-        $writer_module->mock('mset', sub { ok(0, 'mset should not be called here') });
 
         ok $app_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set email without write to chron';
         is $app_config->get(EMAIL_KEY), FIRST_EMAIL, 'Email is retrieved without chron access';
 
         $reader_module->unmock('get');
-        $writer_module->unmock('set');
         $reader_module->unmock('mget');
-        $writer_module->unmock('mset');
     };
 
     subtest 'Chronicle should be engaged with perl caching disabled' => sub {
