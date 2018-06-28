@@ -375,7 +375,7 @@ has perl_level_caching => (
 );
 
 # Save/load Perl cache
-sub update_cache() {
+sub update_cache {
     my $self = shift;
     die 'Perl caching not enabled' unless $self->perl_level_caching;
 
@@ -394,16 +394,16 @@ sub update_cache() {
 
     # If they don't, we need to sync:
     # Per key (inc global _rev):
-    my @keys = $self->_dynamic_keys();
-    push @keys, '_rev';
+    my $keys = $self->_dynamic_keys;
+    push @$keys, '_rev';
 
     my @atomic_pairs = ();
-    push @atomic_pairs, [$self->setting_namespace, $_] foreach (@keys);
+    push @atomic_pairs, [$self->setting_namespace, $_] foreach (@$keys);
     my @entries = $self->chronicle_reader->mget(\@atomic_pairs);
 
-    foreach my $i (0 .. scalar @keys - 1) {
+    foreach my $i (0 .. scalar @$keys - 1) {
         # Get cached _rev and chron _rev
-        my $cache = $self->{$keys[$i]};
+        my $cache = $self->{$keys->[$i]};
         my $chron = $entries[$i];
         $rev_cache  = $cache ? $cache->{_rev} // 0 : 0;
         $rev_global = $chron ? $chron->{_rev} // 0 : 0;
@@ -411,7 +411,7 @@ sub update_cache() {
         next if $rev_cache == $rev_global;
         # Update cache is outdated
         if ($rev_cache < $rev_global) {
-            $self->{$keys[$i]} = $chron;
+            $self->{$keys->[$i]} = $chron;
         }
     }
 
@@ -438,7 +438,7 @@ sub set {
 
     foreach my $key (keys %$pairs) {
         # Check key is valid
-        die "Cannot set with key: $key | Key must be defined with 'global: 1'" unless any { $key eq $_ } $self->_dynamic_keys();
+        die "Cannot set with key: $key | Key must be defined with 'global: 1'" unless any { $key eq $_ } @{$self->_dynamic_keys};
 
         my $val       = $pairs->{$key};
         my $chron_obj = {
@@ -588,9 +588,51 @@ sub unsubscribe {
     $self->chronicle_writer->cache_writer->unsubscribe($underlying_key, $subref);
 }
 
-sub _dynamic_keys {
+has _dynamic_keys => (
+    is      => 'ro',
+    isa     => 'ArrayRef',
+    default => sub { [] },
+);
+
+has _static_keys => (
+    is      => 'ro',
+    isa     => 'ArrayRef',
+    default => sub { [] },
+);
+
+sub _keys {
     my $self = shift;
-    return keys %{$self->dynamic_settings_info->{global}};
+    return [@{$self->_dynamic_keys}, @{$self->_static_keys}];
+}
+
+sub _initialise {
+    my $self = shift;
+
+    # Populate key arrays
+    $self->_populate_keys($self->_defdb, '');
+
+    # Initialise chron with defaults if not already present
+
+    # Populate cache if enabled
+    #$self->update_cache() if $self->perl_level_caching;
+}
+
+sub _populate_keys {
+    my ($self, $keys, $path) = @_;
+
+    foreach my $key (keys %{$keys}) {
+        # TODO: add validation
+        my $def = $keys->{$key};
+        my $fully_qualified_path = $path ? $path . '.' . $key : $key;
+
+        if ($def->{isa} eq 'section') {
+            $self->_populate_keys($def->{contains}, $fully_qualified_path);
+        } elsif ($def->{global}) {
+            push @{$self->_dynamic_keys}, $fully_qualified_path;
+        } else {
+            push @{$self->_static_keys}, $fully_qualified_path;
+        }
+    }
 }
 
 ######################################################
@@ -651,6 +693,7 @@ sub BUILD {
     my $self = shift;
 
     $self->_build_class;
+    $self->_initialise;
 
     return;
 }
