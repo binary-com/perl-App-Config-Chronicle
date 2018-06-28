@@ -452,7 +452,7 @@ sub set {
 
     # Do atomic chronicle write
     push @atomic_pairs, [$self->setting_namespace, '_rev', $global_rev];
-    $self->chronicle_writer->mset(\@atomic_pairs, $rev) unless $self->perl_level_caching;
+    $self->chronicle_writer->mset(\@atomic_pairs, $rev);
 
     return 1;
 }
