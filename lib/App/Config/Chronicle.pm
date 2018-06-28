@@ -370,15 +370,21 @@ has perl_level_caching => (
 
 # Save/load Perl cache
 sub update_cache() {
-    # Sync cache with Redis as one transaction
     my $self = shift;
     die 'Perl caching not enabled' unless $self->perl_level_caching;
 
+    # do fast cached check
+    my $now         = time;
+    my $prev_update = $self->_updated_at;
+    return 0 if ($now - $prev_update < $self->refresh_interval);
+
+    $self->_updated_at($now);
+    # Update cache from Redis
     # Compare cached global rev to chron global rev
     # If they match, we're up to date!
     my $rev_cache = $self->{_rev} // 0;
     my $rev_global = $self->chronicle_reader->get($self->setting_namespace, '_rev') // 0;
-    return if $rev_cache == $rev_global;
+    return 0 if $rev_cache == $rev_global;
 
     # If they don't, we need to sync:
     # Per key (inc global _rev):
