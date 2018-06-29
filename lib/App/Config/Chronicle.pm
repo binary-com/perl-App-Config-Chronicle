@@ -389,25 +389,9 @@ sub update_cache {
 
     return unless $self->_is_cache_stale();
 
-    # Per key (inc global _rev):
     my @keys = (@{$self->_dynamic_keys}, '_rev');
-
-    my @atomic_pairs = map { [$self->setting_namespace, $_] } @keys;
-    my @entries = $self->chronicle_reader->mget(\@atomic_pairs);
-
-    foreach my $i (0 .. scalar @keys - 1) {
-        # Get cached _rev and chron _rev
-        my $cache = $self->{$keys[$i]};
-        my $chron = $entries[$i];
-        my $rev_cache  = $cache ? $cache->{_rev} // 0 : 0;
-        my $rev_global = $chron ? $chron->{_rev} // 0 : 0;
-        # If same, do nothing
-        next if $rev_cache == $rev_global;
-        # Update cache is outdated
-        if ($rev_cache < $rev_global) {
-            $self->{$keys[$i]} = $chron;
-        }
-    }
+    my @all_entries = $self->chronicle_reader->mget([ map { [$self->setting_namespace, $_] } @keys ]);
+    $self->{$keys[$_]} = $all_entries[$_] foreach (0 .. scalar @keys - 1);
 
     return 1;
 }
