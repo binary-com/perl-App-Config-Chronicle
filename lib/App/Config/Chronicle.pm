@@ -4,7 +4,7 @@ package App::Config::Chronicle;
 use strict;
 use warnings;
 use Time::HiRes qw(time);
-use List::Util qw(any);
+use List::Util qw(any pairs);
 
 =head1 NAME
 
@@ -382,24 +382,24 @@ sub update_cache {
     return unless $self->_is_cache_stale();
 
     my @keys = (@{$self->_dynamic_keys}, '_rev');
-    my @all_entries = $self->chronicle_reader->mget([ map { [$self->setting_namespace, $_] } @keys ]);
+    my @all_entries = $self->chronicle_reader->mget([map { [$self->setting_namespace, $_] } @keys]);
     $self->{$keys[$_]} = $all_entries[$_] foreach (0 .. scalar @keys - 1);
 
     return 1;
 }
 
 sub _has_refresh_interval_passed {
-    my $self        = shift;
-    my $now         = time;
-    my $prev_update = $self->_updated_at;
+    my $self                   = shift;
+    my $now                    = time;
+    my $prev_update            = $self->_updated_at;
     my $time_since_prev_update = $now - $prev_update;
     return ($time_since_prev_update > $self->refresh_interval);
 }
 
 sub _is_cache_stale {
-    my $self = shift;
-    my $rev_cache = $self->{_rev} // 0;
-    my $rev_chron = $self->chronicle_reader->get($self->setting_namespace, '_rev') // 0;
+    my $self      = shift;
+    my $rev_cache = $self->_get_global_cache_rev();
+    my $rev_chron = $self->_get_global_chron_rev();
     return ($rev_cache != $rev_chron);
 }
 
@@ -407,53 +407,56 @@ sub global_revision {
     my $self = shift;
     my $rev;
 
-    $rev = $self->{_rev} if $self->local_caching;
-    $rev = $self->chronicle_reader->get($self->setting_namespace, '_rev') unless $self->local_caching;
+    $rev = $self->_get_global_cache_rev() if $self->local_caching;
+    $rev = $self->_get_global_chron_rev() unless $self->local_caching;
 
-    return $rev->{data} if $rev;
-    return 0;
+    return $rev;
+}
+
+sub _get_global_cache_rev {
+    my $self = shift;
+    my $obj  = $self->{_rev};
+    return $obj ? $obj->{data} : 0;
+}
+
+sub _get_global_chron_rev {
+    my $self = shift;
+    my $obj = $self->chronicle_reader->get($self->setting_namespace, '_rev');
+    return $obj ? $obj->{data} : 0;
 }
 
 # Setter
 sub set {
     my ($self, $pairs) = @_;
-    my @atomic_pairs = ();
-    my $rev          = Date::Utility->new;
-    my $rev_epoch    = $rev->{epoch};
+    my @atomic_write_pairs = ();
+    my $rev_obj            = Date::Utility->new;
+    my $rev_epoch          = $rev_obj->{epoch};
 
-    foreach my $key (keys %$pairs) {
-        # Check key is valid
-        die "Cannot set with key: $key | Key must be defined with 'global: 1'" unless any { $key eq $_ } @{$self->_dynamic_keys};
+    grep { die "Cannot set with key: $_ | Key must be defined with 'global: 1'" unless $self->_key_is_dynamic($_) } keys %$pairs;
 
-        my $val       = $pairs->{$key};
+    foreach my $pair (pairs %$pairs) {
+        my ($key, $val) = ($pair->key, $pair->value);
         my $chron_obj = {
             data => $val,
             _rev => $rev_epoch,
         };
 
-        # Prepare for atomic chronicle write
-        push @atomic_pairs, [$self->setting_namespace, $key, $chron_obj];
-
-        # Set Perl cache or write to Redis
+        push @atomic_write_pairs, [$self->setting_namespace, $key, $chron_obj];
         $self->{$key} = $chron_obj if $self->local_caching;
 
         # Add to legacy structure
         $self->data_set->{global}->set($key, $val);
-
         # A new value means any cached history is stale, so force to blank and expire in 1 second
         $self->chronicle_writer->set($self->setting_namespace, $key . '::Rev', {}, Date::Utility->new, 0, 1) if $self->cache_last_get_history;
     }
-    # Set global rev
-    my $global_rev = {
+    my $new_global_rev = {
         data => $rev_epoch,
         _rev => $rev_epoch,
     };
+    $self->{_rev} = $new_global_rev if $self->local_caching;
+    push @atomic_write_pairs, [$self->setting_namespace, '_rev', $new_global_rev];
 
-    $self->{_rev} = $global_rev if $self->local_caching;
-
-    # Do atomic chronicle write
-    push @atomic_pairs, [$self->setting_namespace, '_rev', $global_rev];
-    $self->chronicle_writer->mset(\@atomic_pairs, $rev);
+    $self->chronicle_writer->mset(\@atomic_write_pairs, $rev_obj);
 
     return 1;
 }
@@ -591,6 +594,11 @@ has _static_keys => (
 sub _keys {
     my $self = shift;
     return [@{$self->_dynamic_keys}, @{$self->_static_keys}];
+}
+
+sub _key_is_dynamic {
+    my ($self, $key) = @_;
+    return any { $key eq $_ } @{$self->_dynamic_keys};
 }
 
 sub _initialise {
