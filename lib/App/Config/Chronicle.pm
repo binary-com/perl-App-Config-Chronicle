@@ -521,7 +521,7 @@ sub get_history {
     # Check for cached copy
     $cached_setting_rev = $self->chronicle_reader->get($self->setting_namespace, $key . '::Rev') if $self->cache_last_get_history;
     $setting = $cached_setting_rev->{setting}
-        if (exists $cached_setting_rev->{setting} && exists $cached_setting_rev->{rev} &&  cached_setting_rev->{rev} == $rev);
+        if (exists $cached_setting_rev->{setting} && exists $cached_setting_rev->{rev} &&  $cached_setting_rev->{rev} == $rev);
 
     unless ($setting) {
         $setting = $self->chronicle_reader->get_history($self->setting_namespace, $key, $rev);
