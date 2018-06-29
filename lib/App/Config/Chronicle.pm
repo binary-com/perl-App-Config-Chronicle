@@ -516,17 +516,16 @@ Example:
 
 sub get_history {
     my ($self, $key, $rev) = @_;
-    my ($cached_rev, $setting);
+    my ($cached_setting_rev, $setting);
 
     # Check for cached copy
-    $cached_rev = $self->chronicle_reader->get($self->setting_namespace, $key . '::Rev') if $self->cache_last_get_history;
-    $setting = $cached_rev->{setting} if (exists $cached_rev->{rev} && exists $cached_rev->{setting} && $cached_rev->{rev} == $rev);
+    $cached_setting_rev = $self->chronicle_reader->get($self->setting_namespace, $key . '::Rev') if $self->cache_last_get_history;
+    $setting = $cached_setting_rev->{setting}
+        if (exists $cached_setting_rev->{setting} && exists $cached_setting_rev->{rev} &&  cached_setting_rev->{rev} == $rev);
 
     unless ($setting) {
-        # Lookup from db
         $setting = $self->chronicle_reader->get_history($self->setting_namespace, $key, $rev);
 
-        # Cache without archiving
         $self->chronicle_writer->set(
             $self->setting_namespace,
             $key . '::Rev',
@@ -535,11 +534,12 @@ sub get_history {
                 rev     => $rev
             },
             Date::Utility->new,
-            0    #<-- disables archiving
+            0    #<-- IMPORTANT: disables archiving
         ) if $setting && $self->cache_last_get_history;
     }
 
     return $setting->{data} if $setting;
+    return undef;
 }
 
 =head2 subscribe
