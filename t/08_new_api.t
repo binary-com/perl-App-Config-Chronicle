@@ -127,7 +127,7 @@ subtest 'History chronicling' => sub {
 
 subtest 'Perl level caching' => sub {
     subtest "Chronicle shouldn't be engaged with perl caching enabled" => sub {
-        my $app_config = _new_app_config(perl_level_caching => 1);
+        my $app_config = _new_app_config(local_caching => 1);
 
         my $reader_module = Test::MockModule->new('Data::Chronicle::Reader');
         $reader_module->mock('get',  sub { ok(0, 'get should not be called here') });
@@ -143,7 +143,7 @@ subtest 'Perl level caching' => sub {
     subtest 'Chronicle should be engaged with perl caching disabled' => sub {
         plan tests => 5;    # Ensures the ok checks inside the mocked subs are run
 
-        my $app_config = _new_app_config(perl_level_caching => 0);
+        my $app_config = _new_app_config(local_caching => 0);
 
         my $reader_module = Test::MockModule->new('Data::Chronicle::Reader');
         $reader_module->mock('get',  sub { ok(1, 'get or mget should be called here'); {data => FIRST_EMAIL} });
@@ -174,14 +174,14 @@ subtest 'Global revision updates' => sub {
 
 subtest 'Cache syncing' => sub {
     my $cached_config1 = _new_app_config(
-        perl_level_caching => 1,
+        local_caching => 1,
         refresh_interval   => 0
     );
     my $cached_config2 = _new_app_config(
-        perl_level_caching => 1,
+        local_caching => 1,
         refresh_interval   => 0
     );
-    my $direct_config = _new_app_config(perl_level_caching => 0);
+    my $direct_config = _new_app_config(local_caching => 0);
 
     ok $direct_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set email succeeds';
     is $direct_config->get(EMAIL_KEY), FIRST_EMAIL, 'Email is retrieved successfully';
@@ -205,10 +205,10 @@ subtest 'Cache syncing' => sub {
 
 subtest 'Cache refresh_interval' => sub {
     my $cached_config = _new_app_config(
-        perl_level_caching => 1,
+        local_caching => 1,
         refresh_interval   => 2
     );
-    my $direct_config = _new_app_config(perl_level_caching => 0);
+    my $direct_config = _new_app_config(local_caching => 0);
 
     ok $direct_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set email succeeds';
     is $direct_config->get(EMAIL_KEY), FIRST_EMAIL, 'Email is retrieved successfully';

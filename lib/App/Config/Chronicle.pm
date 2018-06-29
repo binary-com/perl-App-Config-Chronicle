@@ -295,12 +295,9 @@ check and load updated settings from chronicle db
 sub check_for_update {
     my $self = shift;
 
-    # do fast cached check
-    my $now         = time;
-    my $prev_update = $self->_updated_at;
-    return if ($now - $prev_update < $self->refresh_interval);
+    return unless $self->_has_refresh_interval_passed();
+    $self->_updated_at(time);
 
-    $self->_updated_at($now);
     # do check in Redis
     my $data_set = $self->data_set;
     my $app_settings = $self->chronicle_reader->get($self->setting_namespace, $self->setting_name);
@@ -368,62 +365,66 @@ sub current_revision {
 ###### New API stuff here
 ######################################################
 
-has perl_level_caching => (
+has local_caching => (
     isa     => 'Bool',
     is      => 'ro',
     default => 0,
 );
 
+sub _has_refresh_interval_passed {
+    my $self        = shift;
+    my $now         = time;
+    my $prev_update = $self->_updated_at;
+    my $time_since_prev_update = $now - $prev_update;
+    return ($time_since_prev_update > $self->refresh_interval);
+}
+
 # Save/load Perl cache
 sub update_cache {
     my $self = shift;
-    die 'Perl caching not enabled' unless $self->perl_level_caching;
+    die 'Perl caching not enabled' unless $self->local_caching;
 
-    # do fast cached check
-    my $now         = time;
-    my $prev_update = $self->_updated_at;
-    return 0 if ($now - $prev_update < $self->refresh_interval);
+    return unless $self->_has_refresh_interval_passed();
+    $self->_updated_at(time);
 
-    $self->_updated_at($now);
-    # Update cache from Redis
-    # Compare cached global rev to chron global rev
-    # If they match, we're up to date!
-    my $rev_cache = $self->{_rev} // 0;
-    my $rev_global = $self->chronicle_reader->get($self->setting_namespace, '_rev') // 0;
-    return 0 if $rev_cache == $rev_global;
+    return unless $self->_is_cache_stale();
 
-    # If they don't, we need to sync:
     # Per key (inc global _rev):
-    my $keys = $self->_dynamic_keys;
-    push @$keys, '_rev';
+    my @keys = (@{$self->_dynamic_keys}, '_rev');
 
-    my @atomic_pairs = ();
-    push @atomic_pairs, [$self->setting_namespace, $_] foreach (@$keys);
+    my @atomic_pairs = map { [$self->setting_namespace, $_] } @keys;
     my @entries = $self->chronicle_reader->mget(\@atomic_pairs);
 
-    foreach my $i (0 .. scalar @$keys - 1) {
+    foreach my $i (0 .. scalar @keys - 1) {
         # Get cached _rev and chron _rev
-        my $cache = $self->{$keys->[$i]};
+        my $cache = $self->{$keys[$i]};
         my $chron = $entries[$i];
-        $rev_cache  = $cache ? $cache->{_rev} // 0 : 0;
-        $rev_global = $chron ? $chron->{_rev} // 0 : 0;
+        my $rev_cache  = $cache ? $cache->{_rev} // 0 : 0;
+        my $rev_global = $chron ? $chron->{_rev} // 0 : 0;
         # If same, do nothing
         next if $rev_cache == $rev_global;
         # Update cache is outdated
         if ($rev_cache < $rev_global) {
-            $self->{$keys->[$i]} = $chron;
+            $self->{$keys[$i]} = $chron;
         }
     }
 
     return 1;
 }
 
+sub _is_cache_stale {
+    my $self = shift;
+    my $rev_cache = $self->{_rev} // 0;
+    my $rev_chron = $self->chronicle_reader->get($self->setting_namespace, '_rev') // 0;
+    return ($rev_cache != $rev_chron);
+}
+
 sub global_revision {
     my $self = shift;
     my $rev;
 
-    $rev = $self->{_rev} if $self->perl_level_caching;
-    $rev = $self->chronicle_reader->get($self->setting_namespace, '_rev') unless $self->perl_level_caching;
+    $rev = $self->{_rev} if $self->local_caching;
+    $rev = $self->chronicle_reader->get($self->setting_namespace, '_rev') unless $self->local_caching;
 
     return $rev->{data} if $rev;
     return 0;
@@ -450,7 +451,7 @@ sub set {
         push @atomic_pairs, [$self->setting_namespace, $key, $chron_obj];
 
         # Set Perl cache or write to Redis
-        $self->{$key} = $chron_obj if $self->perl_level_caching;
+        $self->{$key} = $chron_obj if $self->local_caching;
 
         # Add to legacy structure
         $self->data_set->{global}->set($key, $val);
@@ -464,7 +465,7 @@ sub set {
         _rev => $rev_epoch,
     };
 
-    $self->{_rev} = $global_rev if $self->perl_level_caching;
+    $self->{_rev} = $global_rev if $self->local_caching;
 
     # Do atomic chronicle write
     push @atomic_pairs, [$self->setting_namespace, '_rev', $global_rev];
@@ -479,8 +480,8 @@ sub get {
 
     if (ref $keys eq '') {
         # Get from Perl cache or retrieve from chronicle
-        return $self->{$keys}->{data} if $self->perl_level_caching;
-        return $self->chronicle_reader->get($self->setting_namespace, $keys)->{data} unless $self->perl_level_caching;
+        return $self->{$keys}->{data} if $self->local_caching;
+        return $self->chronicle_reader->get($self->setting_namespace, $keys)->{data} unless $self->local_caching;
     }
 
     if (ref $keys eq 'ARRAY') {
@@ -489,12 +490,12 @@ sub get {
         # Get from Perl cache or retrieve atomically from chronicle
         foreach my $key (@$keys) {
             # Prepare for atomic chronicle read
-            push @atomic_pairs, [$self->setting_namespace, $key] unless $self->perl_level_caching;
+            push @atomic_pairs, [$self->setting_namespace, $key] unless $self->local_caching;
 
             # Get from Perl cache
-            push @return_vals, $self->{$key->{data}} if $self->perl_level_caching;
+            push @return_vals, $self->{$key->{data}} if $self->local_caching;
         }
-        return @return_vals if $self->perl_level_caching;
+        return @return_vals if $self->local_caching;
 
         # Do atomic chronicle read
         return map { $_->{data} } $self->chronicle_reader->mget(\@atomic_pairs);
