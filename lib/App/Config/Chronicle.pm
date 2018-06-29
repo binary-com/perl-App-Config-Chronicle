@@ -371,14 +371,6 @@ has local_caching => (
     default => 0,
 );
 
-sub _has_refresh_interval_passed {
-    my $self        = shift;
-    my $now         = time;
-    my $prev_update = $self->_updated_at;
-    my $time_since_prev_update = $now - $prev_update;
-    return ($time_since_prev_update > $self->refresh_interval);
-}
-
 # Save/load Perl cache
 sub update_cache {
     my $self = shift;
@@ -394,6 +386,14 @@ sub update_cache {
     $self->{$keys[$_]} = $all_entries[$_] foreach (0 .. scalar @keys - 1);
 
     return 1;
+}
+
+sub _has_refresh_interval_passed {
+    my $self        = shift;
+    my $now         = time;
+    my $prev_update = $self->_updated_at;
+    my $time_since_prev_update = $now - $prev_update;
+    return ($time_since_prev_update > $self->refresh_interval);
 }
 
 sub _is_cache_stale {
