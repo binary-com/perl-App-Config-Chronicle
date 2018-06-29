@@ -466,26 +466,21 @@ sub get {
     my ($self, $keys) = @_;
 
     if (ref $keys eq '') {
-        # Get from Perl cache or retrieve from chronicle
         return $self->{$keys}->{data} if $self->local_caching;
         return $self->chronicle_reader->get($self->setting_namespace, $keys)->{data} unless $self->local_caching;
     }
 
     if (ref $keys eq 'ARRAY') {
-        my @atomic_pairs = ();
-        my @return_vals  = ();
-        # Get from Perl cache or retrieve atomically from chronicle
-        foreach my $key (@$keys) {
-            # Prepare for atomic chronicle read
-            push @atomic_pairs, [$self->setting_namespace, $key] unless $self->local_caching;
+        my @atomic_read_pairs = ();
+        my @return_vals       = ();
 
-            # Get from Perl cache
+        foreach my $key (@$keys) {
+            push @atomic_read_pairs, [$self->setting_namespace, $key] unless $self->local_caching;
             push @return_vals, $self->{$key->{data}} if $self->local_caching;
         }
-        return @return_vals if $self->local_caching;
 
-        # Do atomic chronicle read
-        return map { $_->{data} } $self->chronicle_reader->mget(\@atomic_pairs);
+        return map { $_->{data} } $self->chronicle_reader->mget(\@atomic_read_pairs) unless $self->local_caching;
+        return @return_vals if $self->local_caching;
     }
 
     return undef;
