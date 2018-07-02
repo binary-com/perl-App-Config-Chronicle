@@ -4,7 +4,7 @@ package App::Config::Chronicle;
 use strict;
 use warnings;
 use Time::HiRes qw(time);
-use List::Util qw(any pairs);
+use List::Util qw(any pairs pairmap);
 
 =head1 NAME
 
@@ -374,7 +374,7 @@ has local_caching => (
 # Save/load Perl cache
 sub update_cache {
     my $self = shift;
-    die 'Perl caching not enabled' unless $self->local_caching;
+    die 'Local caching not enabled' unless $self->local_caching;
 
     return unless $self->_has_refresh_interval_passed();
     $self->_updated_at(time);
@@ -434,27 +434,27 @@ sub set {
 
     grep { die "Cannot set with key: $_ | Key must be defined with 'global: 1'" unless $self->_key_is_dynamic($_) } keys %$pairs;
 
-    foreach my $pair (pairs %$pairs) {
-        my ($key, $val) = ($pair->key, $pair->value);
-        my $chron_obj = {
-            data => $val,
-            _rev => $rev_epoch,
-        };
+    $pairs->{_rev} = $rev_epoch;
+    my @key_objs_hash = pairmap { $a => {data=>$b, _rev => $rev_epoch} } %$pairs;
+    self->_store_objects(\@key_objs_hash, $rev_obj);
 
-        push @atomic_write_pairs, [$self->setting_namespace, $key, $chron_obj];
+    return 1;
+}
+
+sub _store_objects {
+    my ($self, $key_objs_hash, $date_obj) = @_;
+    my @atomic_write_pairs = ();
+
+    foreach my $pair (pairs %$key_objs_hash) {
+        my ($key, $chron_obj) = ($pair->key, $pair->value);
+
         $self->{$key} = $chron_obj if $self->local_caching;
+        push @atomic_write_pairs, [$self->setting_namespace, $key, $chron_obj];
 
         # Add to legacy structure
         $self->data_set->{global}->set($key, $val);
     }
-    my $new_global_rev = {
-        data => $rev_epoch,
-        _rev => $rev_epoch,
-    };
-    $self->{_rev} = $new_global_rev if $self->local_caching;
-    push @atomic_write_pairs, [$self->setting_namespace, '_rev', $new_global_rev];
-
-    $self->chronicle_writer->mset(\@atomic_write_pairs, $rev_obj);
+    $self->chronicle_writer->mset(\@atomic_write_pairs, $date_obj);
 
     return 1;
 }
@@ -503,8 +503,14 @@ sub get_history {
     $cache //= 0;
     my ($data_obj, $setting);
 
-    # Check for cached copy
-    $data_obj = $self->chronicle_reader->get($self->setting_namespace, $key);    # TODO: transaction
+    if ($cache) {
+        # Avoids a race condition.
+        #   If the value is changed between the get and set, the set will fail.
+        my $underlying_key = $self->setting_namespace . '::' . $key;
+        $self->chronicle_writer->cache_writer->watch($underlying_key) if $cache;
+    }
+
+    $data_obj = $self->chronicle_reader->get($self->setting_namespace, $key);
     $setting = $data_obj->{"_history_$rev"} if $data_obj;                        # TODO: Local caching of objs???
 
     unless ($setting) {
@@ -519,7 +525,8 @@ sub get_history {
                 "_history_$rev" => $setting
             },
             Date::Utility->new,
-            0    #<-- IMPORTANT: disables archiving
+            0,    #<-- IMPORTANT: disables archiving
+            0,    #<-- IMPORTANT: supresses publication
         ) if $setting && $cache;
     }
 
