@@ -450,9 +450,6 @@ sub _store_objects {
 
         $self->{$key} = $chron_obj if $self->local_caching;
         push @atomic_write_pairs, [$self->setting_namespace, $key, $chron_obj];
-
-        # Add to legacy structure
-        $self->data_set->{global}->set($key, $val);
     }
     $self->chronicle_writer->mset(\@atomic_write_pairs, $date_obj);
 
