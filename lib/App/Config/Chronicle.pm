@@ -446,8 +446,6 @@ sub set {
 
         # Add to legacy structure
         $self->data_set->{global}->set($key, $val);
-        # A new value means any cached history is stale, so force to blank and expire in 1 second
-        $self->chronicle_writer->set($self->setting_namespace, $key . '::Rev', {}, Date::Utility->new, 0, 1) if $self->cache_last_get_history;
     }
     my $new_global_rev = {
         data => $rev_epoch,
@@ -486,26 +484,12 @@ sub get {
     return undef;
 }
 
-=head2 cache_last_get_history
-
-If enabled, then a call to get_history will cache the result for fast lookup.
-The last call for each $key will be cached.
-
-So, a subsequent call with the same $key and $rev will not access the database.
-
-If save_dynamic is called, any cached history for a modified $key will become stale,
-    and it will be removed.
-=cut
-
-has cache_last_get_history => (
-    isa     => 'Bool',
-    is      => 'ro',
-    default => 0,
-);
-
 =head2 get_history
 
 Retreives a past revision of an app config entry, where $rev is the number of revisions in the past requested.
+If the third argument is set to 1 the result of the query will be cached in Redis. This is useful if a certain
+    revision will be needed repeatedly, to avoid excess database access. By default this argument is 0.
+All cached revisions will become stale and be removed if the key is set with a new value.
 
 Example:
     get_history('system.email', 0); Retrieves current version
@@ -515,30 +499,31 @@ Example:
 =cut
 
 sub get_history {
-    my ($self, $key, $rev) = @_;
-    my ($cached_setting_rev, $setting);
+    my ($self, $key, $rev, $cache) = @_;
+    $cache //= 0;
+    my ($data_obj, $setting);
 
     # Check for cached copy
-    $cached_setting_rev = $self->chronicle_reader->get($self->setting_namespace, $key . '::Rev') if $self->cache_last_get_history;
-    $setting = $cached_setting_rev->{setting}
-        if (exists $cached_setting_rev->{setting} && exists $cached_setting_rev->{rev} &&  $cached_setting_rev->{rev} == $rev);
+    $data_obj = $self->chronicle_reader->get($self->setting_namespace, $key);    # TODO: transaction
+    $setting = $data_obj->{"_history_$rev"} if $data_obj;                        # TODO: Local caching of objs???
 
     unless ($setting) {
-        $setting = $self->chronicle_reader->get_history($self->setting_namespace, $key, $rev);
+        my $hist_obj = $self->chronicle_reader->get_history($self->setting_namespace, $key, $rev);
+        $setting = $hist_obj->{data} if $hist_obj;
 
         $self->chronicle_writer->set(
             $self->setting_namespace,
-            $key . '::Rev',
+            $key,
             {
-                setting => $setting,
-                rev     => $rev
+                %$data_obj,
+                "_history_$rev" => $setting
             },
             Date::Utility->new,
             0    #<-- IMPORTANT: disables archiving
-        ) if $setting && $self->cache_last_get_history;
+        ) if $setting && $cache;
     }
 
-    return $setting->{data} if $setting;
+    return $setting if $setting;
     return undef;
 }
 

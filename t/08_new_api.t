@@ -84,8 +84,8 @@ subtest 'Attempt to set non-dynamic key' => sub {
 };
 
 subtest 'History chronicling' => sub {
-    my $app_config = _new_app_config(cache_last_get_history => 1);
-    my $module = Test::MockModule->new('Data::Chronicle::Reader');
+    my $app_config = _new_app_config();
+    my $module     = Test::MockModule->new('Data::Chronicle::Reader');
 
     subtest 'Add history of values' => sub {
         # Sleeps ensure the chronicle records them at different times
@@ -98,29 +98,32 @@ subtest 'History chronicling' => sub {
     };
 
     subtest 'Get history' => sub {
-        is($app_config->get_history(EMAIL_KEY, 0), THIRD_EMAIL,  'History retrieved successfully');
-        is($app_config->get_history(EMAIL_KEY, 1), SECOND_EMAIL, 'History retrieved successfully');
-        is($app_config->get_history(EMAIL_KEY, 2), FIRST_EMAIL,  'History retrieved successfully');
+        is($app_config->get_history(EMAIL_KEY, 0, 1), THIRD_EMAIL,  'History retrieved successfully');
+        is($app_config->get_history(EMAIL_KEY, 1, 1), SECOND_EMAIL, 'History retrieved successfully');
+        is($app_config->get_history(EMAIL_KEY, 2, 1), FIRST_EMAIL,  'History retrieved successfully');
     };
 
     subtest 'Ensure most recent get_history is cached (i.e. get_history should not be called)' => sub {
         $module->mock('get_history', sub { ok(0, 'get_history should not be called here') });
-        is($app_config->get_history(EMAIL_KEY, 2), FIRST_EMAIL, 'Email retrieved via cache');
+        is($app_config->get_history(EMAIL_KEY, 0), THIRD_EMAIL,  'Email retrieved via cache');
+        is($app_config->get_history(EMAIL_KEY, 1), SECOND_EMAIL, 'Email retrieved via cache');
+        is($app_config->get_history(EMAIL_KEY, 2), FIRST_EMAIL,  'Email retrieved via cache');
         $module->unmock('get_history');
     };
 
     subtest 'Ensure cache goes stale when new is set' => sub {
-        is($app_config->get_history(EMAIL_KEY, 1), SECOND_EMAIL, 'Previous email is correct');
+        is($app_config->get_history(EMAIL_KEY, 1, 1), SECOND_EMAIL, 'Previous email is correct');
         ok $app_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set email succeeds';
         is($app_config->get_history(EMAIL_KEY, 1), THIRD_EMAIL, 'Correct previous email is returned');
     };
 
     subtest 'Check caching can be disabled' => sub {
-        plan tests => 3;    # Ensures the ok check inside the mocked sub is run
+        plan tests => 5;    # Ensures the ok checks inside the mocked sub are run
 
-        $app_config = _new_app_config(cache_last_get_history => 0);
-        $module->mock('get_history', sub { ok(1, 'get_history should be called here'); {data => FIRST_EMAIL} });
-        is($app_config->get_history(EMAIL_KEY, 2), FIRST_EMAIL, 'Email retrieved via chronicle');
+        $app_config = _new_app_config();
+        $module->mock('get_history', sub { ok(1, 'get_history should be called here'); {data => SECOND_EMAIL} });
+        is($app_config->get_history(EMAIL_KEY, 2), SECOND_EMAIL, 'Email retrieved via chronicle');
+        is($app_config->get_history(EMAIL_KEY, 2), SECOND_EMAIL, 'Email retrieved via chronicle again');
         $module->unmock('get_history');
     };
 };
@@ -163,8 +166,8 @@ subtest 'Perl level caching' => sub {
 };
 
 subtest 'Global revision updates' => sub {
-    my $app_config = _new_app_config(cache_last_get_history => 1);
-    my $old_rev = $app_config->global_revision();
+    my $app_config = _new_app_config();
+    my $old_rev    = $app_config->global_revision();
 
     ok $app_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set 1 value succeeds';
 
@@ -174,12 +177,12 @@ subtest 'Global revision updates' => sub {
 
 subtest 'Cache syncing' => sub {
     my $cached_config1 = _new_app_config(
-        local_caching => 1,
-        refresh_interval   => 0
+        local_caching    => 1,
+        refresh_interval => 0
     );
     my $cached_config2 = _new_app_config(
-        local_caching => 1,
-        refresh_interval   => 0
+        local_caching    => 1,
+        refresh_interval => 0
     );
     my $direct_config = _new_app_config(local_caching => 0);
 
@@ -205,8 +208,8 @@ subtest 'Cache syncing' => sub {
 
 subtest 'Cache refresh_interval' => sub {
     my $cached_config = _new_app_config(
-        local_caching => 1,
-        refresh_interval   => 2
+        local_caching    => 1,
+        refresh_interval => 2
     );
     my $direct_config = _new_app_config(local_caching => 0);
 
