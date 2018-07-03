@@ -436,8 +436,8 @@ sub set {
 }
 
 sub _store_objects {
-    my ($self, $key_objs_hash, $date_obj) = @_;
-    $self->_store_objects_in_chron($key_objs_hash, $date_obj);
+    my ($self, $key_objs_hash, $date_obj, $optional_chron_args) = @_;
+    $self->_store_objects_in_chron($key_objs_hash, $date_obj, $optional_chron_args);
     $self->_store_objects_in_cache($key_objs_hash) if $self->local_caching;
     return 1;
 }
@@ -449,9 +449,9 @@ sub _store_objects_in_cache {
 }
 
 sub _store_objects_in_chron {
-    my ($self, $key_objs_hash, $date_obj) = @_;
+    my ($self, $key_objs_hash, $date_obj, $optional_chron_args) = @_;
     my @atomic_write_pairs = pairmap { [$self->setting_namespace, $a, $b] } %$key_objs_hash;
-    $self->chronicle_writer->mset(\@atomic_write_pairs, $date_obj);
+    $self->chronicle_writer->mset(\@atomic_write_pairs, $date_obj, @$optional_chron_args);
     return 1;
 }
 
@@ -508,29 +508,25 @@ sub get_history {
 
     if ($cache) {
         # Avoids a race condition.
-        #   If the value is changed between the get and set, the set will fail.
+        #   If the value is changed between the get (_retrieve_objects) and set (_store_objects), the set will fail.
         my $underlying_key = $self->setting_namespace . '::' . $key;
         $self->chronicle_writer->cache_writer->watch($underlying_key) if $cache;
     }
 
-    $data_obj = $self->chronicle_reader->get($self->setting_namespace, $key);
-    $setting = $data_obj->{"_history_$rev"} if $data_obj;    # TODO: Local caching of objs???
+    $data_obj = ($self->_retrieve_objects([$key]))[0];
+    $setting = $data_obj->{"_history_$rev"} if $data_obj;
 
     unless ($setting) {
         my $hist_obj = $self->chronicle_reader->get_history($self->setting_namespace, $key, $rev);
         $setting = $hist_obj->{data} if $hist_obj;
 
-        $self->chronicle_writer->set(
-            $self->setting_namespace,
-            $key,
-            {
-                %$data_obj,
-                "_history_$rev" => $setting
-            },
+        $self->_store_objects(
+            {$key => {%$data_obj, "_history_$rev" => $setting}},
             Date::Utility->new,
-            0,    #<-- IMPORTANT: disables archiving
-            0,    #<-- IMPORTANT: supresses publication
-        ) if $setting && $cache;
+            [
+                0,    #<-- IMPORTANT: disables archiving
+                0,    #<-- IMPORTANT: supresses publication
+            ]) if $setting && $cache;
     }
 
     return $setting if $setting;
