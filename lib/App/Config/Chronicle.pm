@@ -435,8 +435,8 @@ sub set {
     grep { die "Cannot set with key: $_ | Key must be defined with 'global: 1'" unless $self->_key_is_dynamic($_) } keys %$pairs;
 
     $pairs->{_rev} = $rev_epoch;
-    my @key_objs_hash = pairmap { $a => {data=>$b, _rev => $rev_epoch} } %$pairs;
-    self->_store_objects(\@key_objs_hash, $rev_obj);
+    my %key_objs_hash = pairmap { $a => {data=>$b, _local_rev => $rev_epoch} } %$pairs;
+    $self->_store_objects(\%key_objs_hash, $rev_obj);
 
     return 1;
 }
