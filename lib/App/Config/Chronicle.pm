@@ -465,7 +465,6 @@ sub get {
 
     my @result_objs = $self->_retrieve_objects($single_get ? [$keys] : $keys);
     my @results = map { $_ ? $_->{data} : undef } @result_objs;
-    # TODO: default values
 
     return $single_get ? $results[0] : @results;
 }
