@@ -428,14 +428,13 @@ sub _get_global_chron_rev {
 # Setter
 sub set {
     my ($self, $pairs) = @_;
-    my @atomic_write_pairs = ();
-    my $rev_obj            = Date::Utility->new;
-    my $rev_epoch          = $rev_obj->{epoch};
+    my $rev_obj   = Date::Utility->new;
+    my $rev_epoch = $rev_obj->{epoch};
 
     grep { die "Cannot set with key: $_ | Key must be defined with 'global: 1'" unless $self->_key_is_dynamic($_) } keys %$pairs;
 
     $pairs->{_global_rev} = $rev_epoch;
-    my %key_objs_hash = pairmap { $a => {data=>$b, _local_rev => $rev_epoch} } %$pairs;
+    my %key_objs_hash = pairmap { $a => {data => $b, _local_rev => $rev_epoch} } %$pairs;
     $self->_store_objects(\%key_objs_hash, $rev_obj);
 
     return 1;
@@ -513,7 +512,7 @@ sub get_history {
     }
 
     $data_obj = $self->chronicle_reader->get($self->setting_namespace, $key);
-    $setting = $data_obj->{"_history_$rev"} if $data_obj;                        # TODO: Local caching of objs???
+    $setting = $data_obj->{"_history_$rev"} if $data_obj;    # TODO: Local caching of objs???
 
     unless ($setting) {
         my $hist_obj = $self->chronicle_reader->get_history($self->setting_namespace, $key, $rev);
@@ -596,7 +595,7 @@ sub _initialise {
             # Set default in Redis only if key doesn't already exist
             if ($def->{default}) {
                 my $chron_obj = {
-                    data => $def->{default},
+                    data       => $def->{default},
                     _local_rev => 0,
                 };
                 use Encode qw(encode_utf8);
