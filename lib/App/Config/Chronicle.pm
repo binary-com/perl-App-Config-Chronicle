@@ -381,7 +381,7 @@ sub update_cache {
 
     return unless $self->_is_cache_stale();
 
-    my @keys = (@{$self->_dynamic_keys}, '_rev');
+    my @keys = (@{$self->_dynamic_keys}, '_global_rev');
     my @all_entries = $self->chronicle_reader->mget([map { [$self->setting_namespace, $_] } @keys]);
     $self->{$keys[$_]} = $all_entries[$_] foreach (0 .. scalar @keys - 1);
 
@@ -415,13 +415,13 @@ sub global_revision {
 
 sub _get_global_cache_rev {
     my $self = shift;
-    my $obj  = $self->{_rev};
+    my $obj  = $self->{_global_rev};
     return $obj ? $obj->{data} : 0;
 }
 
 sub _get_global_chron_rev {
     my $self = shift;
-    my $obj = $self->chronicle_reader->get($self->setting_namespace, '_rev');
+    my $obj = $self->chronicle_reader->get($self->setting_namespace, '_global_rev');
     return $obj ? $obj->{data} : 0;
 }
 
@@ -434,7 +434,7 @@ sub set {
 
     grep { die "Cannot set with key: $_ | Key must be defined with 'global: 1'" unless $self->_key_is_dynamic($_) } keys %$pairs;
 
-    $pairs->{_rev} = $rev_epoch;
+    $pairs->{_global_rev} = $rev_epoch;
     my %key_objs_hash = pairmap { $a => {data=>$b, _local_rev => $rev_epoch} } %$pairs;
     $self->_store_objects(\%key_objs_hash, $rev_obj);
 
@@ -600,7 +600,7 @@ sub _initialise {
             if ($def->{default}) {
                 my $chron_obj = {
                     data => $def->{default},
-                    _rev => 0,
+                    _local_rev => 0,
                 };
                 use Encode qw(encode_utf8);
                 use JSON::MaybeXS;
