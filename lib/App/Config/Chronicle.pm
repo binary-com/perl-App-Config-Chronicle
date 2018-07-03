@@ -466,7 +466,7 @@ sub get {
 
     my $single_get = ref $keys eq '';
 
-    # todo: key check
+    grep { die "Cannot get with key: $_ | Key must be defined'" unless $self->_key_exists($_) } $single_get ? ($keys) : @$keys;
 
     my @result_objs = $self->_retrieve_objects($single_get ? [$keys] : $keys);
     my @results = map { $_ ? $_->{data} : undef } @result_objs;
@@ -581,6 +581,11 @@ has _static_keys => (
 sub _keys {
     my $self = shift;
     return [@{$self->_dynamic_keys}, @{$self->_static_keys}];
+}
+
+sub _key_exists {
+    my ($self, $key) = @_;
+    return any { $key eq $_ } @{$self->_keys};
 }
 
 sub _key_is_dynamic {

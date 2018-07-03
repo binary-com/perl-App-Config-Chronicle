@@ -17,6 +17,7 @@ use constant {
     REFRESH_KEY   => 'system.refresh',
     REFRESH_SET   => 20,
     DEFAULT_REF   => 10,
+    NON_EXT_KEY   => 'system.wrong'
 };
 
 subtest 'Global revision = 0' => sub {
@@ -75,12 +76,30 @@ subtest 'Batch set and get' => sub {
     is $res[1], REFRESH_SET, 'Refresh is retrieved successfully';
 };
 
-subtest 'Attempt to set non-dynamic key' => sub {
-    my $app_config = _new_app_config();
-    throws_ok {
-        $app_config->set({ADMINS_KEY() => ADMINS_SET});
-    }
-    qr/Cannot set with key/;
+subtest 'Gets/sets of illegal keys' => sub {
+    subtest 'Attempt to set static key' => sub {
+        my $app_config = _new_app_config();
+        throws_ok {
+            $app_config->set({ADMINS_KEY() => ADMINS_SET});
+        }
+        qr/Cannot set with key/;
+    };
+
+    subtest 'Attempt to set non-existent key' => sub {
+        my $app_config = _new_app_config();
+        throws_ok {
+            $app_config->set({NON_EXT_KEY() => ADMINS_SET});
+        }
+        qr/Cannot set with key/;
+    };
+    
+    subtest 'Attempt to get non-existent key' => sub {
+        my $app_config = _new_app_config();
+        throws_ok {
+            $app_config->get(NON_EXT_KEY);
+        }
+        qr/Cannot get with key/;
+    };
 };
 
 subtest 'History chronicling' => sub {
