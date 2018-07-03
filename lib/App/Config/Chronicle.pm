@@ -443,16 +443,21 @@ sub set {
 
 sub _store_objects {
     my ($self, $key_objs_hash, $date_obj) = @_;
-    my @atomic_write_pairs = ();
+    $self->_store_objects_in_chron($key_objs_hash, $date_obj);
+    $self->_store_objects_in_cache($key_objs_hash) if $self->local_caching;
+    return 1;
+}
 
-    foreach my $pair (pairs %$key_objs_hash) {
-        my ($key, $chron_obj) = ($pair->key, $pair->value);
+sub _store_objects_in_cache {
+    my ($self, $key_objs_hash) = @_;
+    $self->{$_->key} = $_->value foreach (pairs %$key_objs_hash);
+    return 1;
+}
 
-        $self->{$key} = $chron_obj if $self->local_caching;
-        push @atomic_write_pairs, [$self->setting_namespace, $key, $chron_obj];
-    }
+sub _store_objects_in_chron {
+    my ($self, $key_objs_hash, $date_obj) = @_;
+    my @atomic_write_pairs = pairmap { [$self->setting_namespace, $a, $b] } %$key_objs_hash;
     $self->chronicle_writer->mset(\@atomic_write_pairs, $date_obj);
-
     return 1;
 }
 
