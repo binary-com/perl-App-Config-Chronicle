@@ -405,24 +405,19 @@ sub _is_cache_stale {
 
 sub global_revision {
     my $self = shift;
-    my $rev;
-
-    $rev = $self->_get_global_cache_rev() if $self->local_caching;
-    $rev = $self->_get_global_chron_rev() unless $self->local_caching;
-
-    return $rev;
+    return $self->local_caching ? $self->_get_global_cache_rev() : $self->_get_global_chron_rev();
 }
 
 sub _get_global_cache_rev {
     my $self = shift;
-    my $obj  = $self->{_global_rev};
-    return $obj ? $obj->{data} : 0;
+    my @rev  = $self->_retrieve_objects_from_cache(['_global_rev']);
+    return $rev[0] ? $rev[0]->{data} : 0;
 }
 
 sub _get_global_chron_rev {
     my $self = shift;
-    my $obj = $self->chronicle_reader->get($self->setting_namespace, '_global_rev');
-    return $obj ? $obj->{data} : 0;
+    my @rev  = $self->_retrieve_objects_from_chron(['_global_rev']);
+    return $rev[0] ? $rev[0]->{data} : 0;
 }
 
 # Setter
