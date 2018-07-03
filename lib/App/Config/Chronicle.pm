@@ -464,25 +464,32 @@ sub _store_objects_in_chron {
 sub get {
     my ($self, $keys) = @_;
 
-    if (ref $keys eq '') {
-        return $self->{$keys}->{data} if $self->local_caching;
-        return $self->chronicle_reader->get($self->setting_namespace, $keys)->{data} unless $self->local_caching;
-    }
+    my $single_get = ref $keys eq '';
 
-    if (ref $keys eq 'ARRAY') {
-        my @atomic_read_pairs = ();
-        my @return_vals       = ();
+    # todo: key check
 
-        foreach my $key (@$keys) {
-            push @atomic_read_pairs, [$self->setting_namespace, $key] unless $self->local_caching;
-            push @return_vals, $self->{$key->{data}} if $self->local_caching;
-        }
+    my @result_objs = $self->_retrieve_objects($single_get ? [$keys] : $keys);
+    my @results = map { $_ ? $_->{data} : undef } @result_objs;
+    # TODO: default values
 
-        return map { $_->{data} } $self->chronicle_reader->mget(\@atomic_read_pairs) unless $self->local_caching;
-        return @return_vals if $self->local_caching;
-    }
+    return $single_get ? $results[0] : @results;
+}
 
-    return undef;
+sub _retrieve_objects {
+    my ($self, $keys) = @_;
+    return $self->_retrieve_objects_from_cache($keys) if $self->local_caching;
+    return $self->_retrieve_objects_from_chron($keys);
+}
+
+sub _retrieve_objects_from_cache {
+    my ($self, $keys) = @_;
+    return map { $self->{$_} } @$keys;
+}
+
+sub _retrieve_objects_from_chron {
+    my ($self, $keys) = @_;
+    my @atomic_read_pairs = map { [$self->setting_namespace, $_] } @$keys;
+    return $self->chronicle_reader->mget(\@atomic_read_pairs);
 }
 
 =head2 get_history
