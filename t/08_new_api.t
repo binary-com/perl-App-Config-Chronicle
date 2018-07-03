@@ -207,8 +207,8 @@ subtest 'Cache syncing' => sub {
 
     ok $direct_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set email succeeds';
     is $direct_config->get(EMAIL_KEY), FIRST_EMAIL, 'Email is retrieved successfully';
-    is $cached_config1->get(EMAIL_KEY), undef, 'Cache1 is empty';
-    is $cached_config2->get(EMAIL_KEY), undef, 'Cache2 is empty';
+    is $cached_config1->get(EMAIL_KEY), DEFAULT_EMAIL, 'Cache1 contains default before first update call';
+    is $cached_config2->get(EMAIL_KEY), DEFAULT_EMAIL, 'Cache2 contains default before first update call';
 
     ok $cached_config1->update_cache(), 'Cache 1 is updated';
     ok $cached_config2->update_cache(), 'Cache 2 is updated';

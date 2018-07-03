@@ -595,17 +595,15 @@ sub _initialise {
             $self->_initialise($def->{contains}, $fully_qualified_path);
         } else {
             push @{$def->{global} ? $self->_dynamic_keys : $self->_static_keys}, $fully_qualified_path;
-            # Set default in Redis only if key doesn't already exist
             if ($def->{default}) {
                 my $chron_obj = {
                     data       => $def->{default},
                     _local_rev => 0,
                 };
-                use Encode qw(encode_utf8);
-                use JSON::MaybeXS;
-                my $underlying_key   = $self->setting_namespace . '::' . $fully_qualified_path;
-                my $underlying_value = encode_utf8(JSON::MaybeXS->new->encode($chron_obj));
-                $self->chronicle_writer->cache_writer->setnx($underlying_key, $underlying_value);
+                # Set default in Redis only if key doesn't already exist
+                $self->chronicle_writer->setnx($self->setting_namespace, $fully_qualified_path, $chron_obj, Date::Utility->new);
+                # Set default in cache, subsequent call to update_cache will overwrite if necessary
+                $self->_store_objects_in_cache({$fully_qualified_path => $chron_obj}) if $self->local_caching;
             }
         }
     }
