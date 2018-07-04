@@ -377,9 +377,9 @@ sub update_cache {
 
     return unless $self->_is_cache_stale();
 
-    my @keys = (@{$self->_dynamic_keys}, '_global_rev');
-    my @all_entries = $self->chronicle_reader->mget([map { [$self->setting_namespace, $_] } @keys]);
-    $self->{$keys[$_]} = $all_entries[$_] foreach (0 .. scalar @keys - 1);
+    my $keys = [@{$self->_dynamic_keys}, '_global_rev'];
+    my @all_entries = $self->_retrieve_objects_from_chron($keys);
+    $self->_store_objects_in_cache({map { $keys->[$_] => $all_entries[$_] } (0 .. scalar @$keys - 1)});
 
     return 1;
 }
@@ -541,8 +541,9 @@ sub get_history {
             {$key . '::' . $rev => $hist_obj},
             Date::Utility->new,
             [
-                0,    #<-- IMPORTANT: disables archiving
-                0,    #<-- IMPORTANT: supresses publication
+                0,         #<-- IMPORTANT: disables archiving
+                0,         #<-- IMPORTANT: supresses publication
+                604800,    #<-- ttl = 7 days so that stale histories don't stay indefinitely.
             ]) if $hist_obj && $cache;
     }
     return $hist_obj->{data} if $hist_obj;
