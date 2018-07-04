@@ -328,17 +328,7 @@ sub save_dynamic {
     my $global = Data::Hash::DotNotation->new();
     foreach my $key (keys %{$self->dynamic_settings_info->{global}}) {
         if ($self->data_set->{global}->key_exists($key)) {
-            # Legacy (group save)
             $global->set($key, $self->data_set->{global}->get($key));
-            # New (individual save)
-            #my $old = $self->chronicle_reader->get($self->setting_namespace, $key) || {};
-            #my $new = $self->data_set->{global}->get($key);
-            #if ($new ne $old->{data}) {
-            #    # A new value means any cached history is stale, so force to blank and expire in 1 second
-            #    $self->chronicle_writer->set($self->setting_namespace, $key . '::Rev', {}, Date::Utility->new, 0, 1) if $self->cache_last_get_history;
-            #    # Save the new value
-            #    $self->chronicle_writer->set($self->setting_namespace, $key, [$new], Date::Utility->new);
-            #}
         }
     }
 
