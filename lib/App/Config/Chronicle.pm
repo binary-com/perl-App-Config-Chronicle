@@ -503,32 +503,25 @@ Example:
 sub get_history {
     my ($self, $key, $rev, $cache) = @_;
     $cache //= 0;
-    my ($data_obj, $setting);
 
-    if ($cache) {
-        # Avoids a race condition.
-        #   If the value is changed between the get (_retrieve_objects) and set (_store_objects), the set will fail.
-        my $underlying_key = $self->setting_namespace . '::' . $key;
-        $self->chronicle_writer->cache_writer->watch($underlying_key) if $cache;
-    }
+    my @data_objs = $self->_retrieve_objects([$key, $key . '::' . $rev]);
+    my $curr_obj  = $data_objs[0];
+    my $hist_obj  = $data_objs[1];
 
-    $data_obj = ($self->_retrieve_objects([$key]))[0];
-    $setting = $data_obj->{"_history_$rev"} if $data_obj;
+    # If no cache, or cache is stale, go straight to get from db
+    unless ($hist_obj && $hist_obj->{_local_rev} == $curr_obj->{_local_rev}) {
+        $hist_obj = $self->chronicle_reader->get_history($self->setting_namespace, $key, $rev);
 
-    unless ($setting) {
-        my $hist_obj = $self->chronicle_reader->get_history($self->setting_namespace, $key, $rev);
-        $setting = $hist_obj->{data} if $hist_obj;
-
+        $hist_obj->{_local_rev} = $curr_obj->{_local_rev};
         $self->_store_objects(
-            {$key => {%$data_obj, "_history_$rev" => $setting}},
+            {$key . '::' . $rev => $hist_obj},
             Date::Utility->new,
             [
                 0,    #<-- IMPORTANT: disables archiving
                 0,    #<-- IMPORTANT: supresses publication
-            ]) if $setting && $cache;
+            ]) if $hist_obj && $cache;
     }
-
-    return $setting if $setting;
+    return $hist_obj->{data} if $hist_obj;
     return undef;
 }
 

@@ -122,7 +122,7 @@ subtest 'History chronicling' => sub {
         is($app_config->get_history(EMAIL_KEY, 2, 1), FIRST_EMAIL,  'History retrieved successfully');
     };
 
-    subtest 'Ensure most recent get_history is cached (i.e. get_history should not be called)' => sub {
+    subtest 'Ensure get_history is cached (i.e. get_history should not be called)' => sub {
         $module->mock('get_history', sub { ok(0, 'get_history should not be called here') });
         is($app_config->get_history(EMAIL_KEY, 0), THIRD_EMAIL,  'Email retrieved via cache');
         is($app_config->get_history(EMAIL_KEY, 1), SECOND_EMAIL, 'Email retrieved via cache');
