@@ -361,7 +361,13 @@ has local_caching => (
     default => 0,
 );
 
-# Save/load Perl cache
+=head2 update_cache
+
+Loads latest values from data chronicle into local cache.
+Calls to this method are rate-limited by <refresh_interval>.
+
+=cut
+
 sub update_cache {
     my $self = shift;
     die 'Local caching not enabled' unless $self->local_caching;
@@ -393,6 +399,13 @@ sub _is_cache_stale {
     return ($rev_cache != $rev_chron);
 }
 
+=head2 global_revision
+
+Returns the global revision version of the config chronicle.
+This will correspond to the last time any of values were changed.
+
+=cut
+
 sub global_revision {
     my $self = shift;
     return $self->local_caching ? $self->_get_global_cache_rev() : $self->_get_global_chron_rev();
@@ -410,7 +423,15 @@ sub _get_global_chron_rev {
     return $rev[0] ? $rev[0]->{data} : 0;
 }
 
-# Setter
+=head2 set
+
+Takes a hashref of key->value pairs and atomically sets them in config chronicle
+
+Example:
+    set({key1 => 'value1', key2 => 'value2', key3 => 'value3',...});
+
+=cut
+
 sub set {
     my ($self, $pairs) = @_;
     my $rev_obj   = Date::Utility->new;
@@ -445,7 +466,18 @@ sub _store_objects_in_chron {
     return 1;
 }
 
-# Getters
+=head2 get
+
+Takes an arrayref of keys, gets them atomically, and returns an array of values in corresponding order.
+If a key has an empty value, it will return undef.
+
+Example:
+    get(['key1','key2','key3',...]);
+Returns:
+    ('value1','value2','value3',...)
+
+=cut
+
 sub get {
     my ($self, $keys) = @_;
 
@@ -481,7 +513,7 @@ sub _retrieve_objects_from_chron {
 Retreives a past revision of an app config entry, where $rev is the number of revisions in the past requested.
 If the third argument is set to 1 the result of the query will be cached in Redis. This is useful if a certain
     revision will be needed repeatedly, to avoid excess database access. By default this argument is 0.
-All cached revisions will become stale and be removed if the key is set with a new value.
+All cached revisions will become stale if the key is set with a new value.
 
 Example:
     get_history('system.email', 0); Retrieves current version
