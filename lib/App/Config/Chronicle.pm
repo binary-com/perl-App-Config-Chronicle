@@ -394,8 +394,8 @@ sub _has_refresh_interval_passed {
 
 sub _is_cache_stale {
     my $self      = shift;
-    my $rev_cache = $self->_get_global_cache_rev();
-    my $rev_chron = $self->_get_global_chron_rev();
+    my $rev_cache = ($self->_retrieve_objects_from_cache(['_global_rev']))[0]->{data};
+    my $rev_chron = ($self->_retrieve_objects_from_chron(['_global_rev']))[0]->{data};
     return ($rev_cache != $rev_chron);
 }
 
@@ -408,19 +408,7 @@ This will correspond to the last time any of values were changed.
 
 sub global_revision {
     my $self = shift;
-    return $self->local_caching ? $self->_get_global_cache_rev() : $self->_get_global_chron_rev();
-}
-
-sub _get_global_cache_rev {
-    my $self = shift;
-    my @rev  = $self->_retrieve_objects_from_cache(['_global_rev']);
-    return $rev[0] ? $rev[0]->{data} : 0;
-}
-
-sub _get_global_chron_rev {
-    my $self = shift;
-    my @rev  = $self->_retrieve_objects_from_chron(['_global_rev']);
-    return $rev[0] ? $rev[0]->{data} : 0;
+    return ($self->_retrieve_objects(['_global_rev']))[0]->{data};
 }
 
 =head2 set
@@ -468,37 +456,33 @@ sub _store_objects_in_chron {
 
 =head2 get
 
-Either:
-a) Takes an arrayref of keys, gets them atomically, and returns a hashref of key->values.
-b) Takes a single key, and returns the value;
+Takes either an arrayref of keys, or a single key, gets them atomically, and returns a hashref of key->values.
 If a key has an empty value, it will return with undef.
+get always returns the global_revision under the key '_global_revision'
 
 Example:
     get(['key1','key2','key3',...]);
 Returns:
-    {'key1' => 'value1', 'key2' => 'value2', 'key3' => 'value3',...}
+    {'key1' => 'value1', 'key2' => 'value2', 'key3' => 'value3',..., '_global_revision' => '<number>'}
 
 Example:
     get('key1');
 Returns:
-    'value1'
+    {'key1' => 'value1', '_global_revision' => '<number>'}
 
 =cut
 
 sub get {
     my ($self, $keys) = @_;
 
-    my $single_get = ref $keys eq '';
-    grep { die "Cannot get with key: $_ | Key must be defined'" unless $self->_key_exists($_) } $single_get ? ($keys) : @$keys;
+    $keys = [$keys] if ref $keys eq '';
+    grep { die "Cannot get with key: $_ | Key must be defined'" unless $self->_key_exists($_) } @$keys;
 
-    if ($single_get) {
-        my @result_objs = $self->_retrieve_objects([$keys]);
-        return $result_objs[0] ? $result_objs[0]->{data} : undef;
-    } else {
-        my @result_objs = $self->_retrieve_objects($keys);
-        my %results = map { $keys->[$_] => $result_objs[$_] ? $result_objs[$_]->{data} : undef } (0 .. scalar @$keys - 1);
-        return \%results;
-    }
+    push @$keys, '_global_rev';
+
+    my @result_objs = $self->_retrieve_objects($keys);
+    my %results = map { $keys->[$_] => $result_objs[$_] ? $result_objs[$_]->{data} : undef } (0 .. scalar @$keys - 1);
+    return \%results;
 }
 
 sub _retrieve_objects {
@@ -596,6 +580,12 @@ has _static_keys => (
     default => sub { [] },
 );
 
+has _key_types => (
+    is      => 'ro',
+    isa     => 'HashRef',
+    default => sub { {} },
+);
+
 sub _keys {
     my $self = shift;
     return [@{$self->_dynamic_keys}, @{$self->_static_keys}];
@@ -611,6 +601,11 @@ sub _key_is_dynamic {
     return any { $key eq $_ } @{$self->_dynamic_keys};
 }
 
+sub get_type {
+    my ($self, $key) = @_;
+    return $self->_key_types->{$key};
+}
+
 sub _initialise {
     my ($self, $keys, $path) = @_;
 
@@ -622,18 +617,26 @@ sub _initialise {
             $self->_initialise($def->{contains}, $fully_qualified_path);
         } else {
             push @{$def->{global} ? $self->_dynamic_keys : $self->_static_keys}, $fully_qualified_path;
-            if ($def->{default}) {
-                my $chron_obj = {
-                    data       => $def->{default},
-                    _local_rev => 0,
-                };
-                # Set default in Redis only if key doesn't already exist
-                $self->chronicle_writer->setnx($self->setting_namespace, $fully_qualified_path, $chron_obj, Date::Utility->new);
-                # Set default in cache, subsequent call to update_cache will overwrite if necessary
-                $self->_store_objects_in_cache({$fully_qualified_path => $chron_obj}) if $self->local_caching;
-            }
+            $self->_key_types->{$fully_qualified_path} = $def->{isa};
+            $self->_set_default($fully_qualified_path, $def->{default}) if $def->{default};
         }
     }
+
+    $self->_set_default('_global_rev', 0);
+    return 1;
+}
+
+sub _set_default {
+    my ($self, $key, $default_value) = @_;
+    my $chron_obj = {
+        data       => $default_value,
+        _local_rev => 0,
+    };
+    # Set default in Redis only if key doesn't already exist
+    $self->chronicle_writer->setnx($self->setting_namespace, $key, $chron_obj, Date::Utility->new);
+    # Set default in cache, subsequent call to update_cache will overwrite if necessary
+    $self->_store_objects_in_cache({$key => $chron_obj}) if $self->local_caching;
+    return 1;
 }
 
 ######################################################
