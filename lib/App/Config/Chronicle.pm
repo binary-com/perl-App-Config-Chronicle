@@ -504,6 +504,8 @@ sub get_history {
     my ($self, $key, $rev, $cache) = @_;
     $cache //= 0;
 
+    die "Cannot get history of key: $key | Key must be dynamic" unless $self->_key_is_dynamic($key);
+
     my @data_objs = $self->_retrieve_objects([$key, $key . '::' . $rev]);
     my $curr_obj  = $data_objs[0];
     my $hist_obj  = $data_objs[1];

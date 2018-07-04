@@ -92,7 +92,7 @@ subtest 'Gets/sets of illegal keys' => sub {
         }
         qr/Cannot set with key/;
     };
-    
+
     subtest 'Attempt to get non-existent key' => sub {
         my $app_config = _new_app_config();
         throws_ok {
@@ -144,6 +144,13 @@ subtest 'History chronicling' => sub {
         is($app_config->get_history(EMAIL_KEY, 2), SECOND_EMAIL, 'Email retrieved via chronicle');
         is($app_config->get_history(EMAIL_KEY, 2), SECOND_EMAIL, 'Email retrieved via chronicle again');
         $module->unmock('get_history');
+    };
+
+    subtest 'History of static key' => sub {
+        throws_ok {
+            $app_config->get_history(ADMINS_KEY, 1);
+        }
+        qr/Cannot get history/;
     };
 };
 
@@ -206,7 +213,7 @@ subtest 'Cache syncing' => sub {
     my $direct_config = _new_app_config(local_caching => 0);
 
     ok $direct_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set email succeeds';
-    is $direct_config->get(EMAIL_KEY), FIRST_EMAIL, 'Email is retrieved successfully';
+    is $direct_config->get(EMAIL_KEY),  FIRST_EMAIL,   'Email is retrieved successfully';
     is $cached_config1->get(EMAIL_KEY), DEFAULT_EMAIL, 'Cache1 contains default before first update call';
     is $cached_config2->get(EMAIL_KEY), DEFAULT_EMAIL, 'Cache2 contains default before first update call';
 
