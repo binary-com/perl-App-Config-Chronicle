@@ -514,7 +514,7 @@ sub get_history {
     unless ($hist_obj && $hist_obj->{_local_rev} == $curr_obj->{_local_rev}) {
         $hist_obj = $self->chronicle_reader->get_history($self->setting_namespace, $key, $rev);
 
-        $hist_obj->{_local_rev} = $curr_obj->{_local_rev};
+        $hist_obj->{_local_rev} = $curr_obj->{_local_rev} if $hist_obj;
         $self->_store_objects(
             {$key . '::' . $rev => $hist_obj},
             Date::Utility->new,

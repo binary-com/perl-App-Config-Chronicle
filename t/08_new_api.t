@@ -146,6 +146,10 @@ subtest 'History chronicling' => sub {
         $module->unmock('get_history');
     };
 
+    subtest 'Rev too old' => sub {
+        is($app_config->get_history(EMAIL_KEY, 50), undef, 'Rev older than oldest returns undef');
+    };
+
     subtest 'History of static key' => sub {
         throws_ok {
             $app_config->get_history(ADMINS_KEY, 1);
