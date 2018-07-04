@@ -468,13 +468,20 @@ sub _store_objects_in_chron {
 
 =head2 get
 
-Takes an arrayref of keys, gets them atomically, and returns an array of values in corresponding order.
-If a key has an empty value, it will return undef.
+Either:
+a) Takes an arrayref of keys, gets them atomically, and returns a hashref of key->values.
+b) Takes a single key, and returns the value;
+If a key has an empty value, it will return with undef.
 
 Example:
     get(['key1','key2','key3',...]);
 Returns:
-    ('value1','value2','value3',...)
+    {'key1' => 'value1', 'key2' => 'value2', 'key3' => 'value3',...}
+
+Example:
+    get('key1');
+Returns:
+    'value1'
 
 =cut
 
@@ -482,13 +489,16 @@ sub get {
     my ($self, $keys) = @_;
 
     my $single_get = ref $keys eq '';
-
     grep { die "Cannot get with key: $_ | Key must be defined'" unless $self->_key_exists($_) } $single_get ? ($keys) : @$keys;
 
-    my @result_objs = $self->_retrieve_objects($single_get ? [$keys] : $keys);
-    my @results = map { $_ ? $_->{data} : undef } @result_objs;
-
-    return $single_get ? $results[0] : @results;
+    if ($single_get) {
+        my @result_objs = $self->_retrieve_objects([$keys]);
+        return $result_objs[0] ? $result_objs[0]->{data} : undef;
+    } else {
+        my @result_objs = $self->_retrieve_objects($keys);
+        my %results = map { $keys->[$_] => $result_objs[$_] ? $result_objs[$_]->{data} : undef } (0 .. scalar @$keys - 1);
+        return \%results;
+    }
 }
 
 sub _retrieve_objects {

@@ -49,9 +49,9 @@ subtest 'Default values' => sub {
     is $app_config->get(REFRESH_KEY), DEFAULT_REF,   'Default refresh is returned';
     is_deeply $app_config->get(ADMINS_KEY), [], 'Default admins are returned';
 
-    ok my @multi = $app_config->get([EMAIL_KEY, REFRESH_KEY]), 'Mget defaults is ok';
-    is $multi[0], DEFAULT_EMAIL, 'Default email is returned';
-    is $multi[1], DEFAULT_REF,   'Default refresh is returned';
+    ok my $multi = $app_config->get([EMAIL_KEY, REFRESH_KEY]), 'Mget defaults is ok';
+    is $multi->{EMAIL_KEY()},   DEFAULT_EMAIL, 'Default email is returned';
+    is $multi->{REFRESH_KEY()}, DEFAULT_REF,   'Default refresh is returned';
 };
 
 subtest 'Basic set and get' => sub {
@@ -71,9 +71,9 @@ subtest 'Batch set and get' => sub {
         ),
         'Set 2 values succeeds';
 
-    ok my @res = $app_config->get([EMAIL_KEY, REFRESH_KEY]);
-    is $res[0], FIRST_EMAIL, 'Email is retrieved successfully';
-    is $res[1], REFRESH_SET, 'Refresh is retrieved successfully';
+    ok my $res = $app_config->get([EMAIL_KEY, REFRESH_KEY]);
+    is $res->{EMAIL_KEY()},   FIRST_EMAIL, 'Email is retrieved successfully';
+    is $res->{REFRESH_KEY()}, REFRESH_SET, 'Refresh is retrieved successfully';
 };
 
 subtest 'Gets/sets of illegal keys' => sub {
