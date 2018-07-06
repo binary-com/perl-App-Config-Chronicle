@@ -377,7 +377,7 @@ sub update_cache {
 
     return unless $self->_is_cache_stale();
 
-    my $keys = [@{$self->_dynamic_keys}, '_global_rev'];
+    my $keys = [$self->_dynamic_keys(), '_global_rev'];
     my @all_entries = $self->_retrieve_objects_from_chron($keys);
     $self->_store_objects_in_cache({map { $keys->[$_] => $all_entries[$_] } (0 .. scalar @$keys - 1)});
 
@@ -568,42 +568,48 @@ sub unsubscribe {
     $self->chronicle_writer->unsubscribe($self->setting_namespace, $key, $subref);
 }
 
-has _dynamic_keys => (
-    is      => 'ro',
-    isa     => 'ArrayRef',
-    default => sub { [] },
-);
-
-has _static_keys => (
-    is      => 'ro',
-    isa     => 'ArrayRef',
-    default => sub { [] },
-);
-
-has _key_types => (
+has _keys => (
     is      => 'ro',
     isa     => 'HashRef',
     default => sub { {} },
 );
 
-sub _keys {
+sub _all_keys {
     my $self = shift;
-    return [@{$self->_dynamic_keys}, @{$self->_static_keys}];
+    return keys %{$self->_keys};
+}
+
+sub _dynamic_keys {
+    my $self = shift;
+    return grep { $self->_key_is_dynamic($_) } $self->_all_keys();
+}
+
+sub _static_keys {
+    my $self = shift;
+    return grep { $self->_key_is_static($_) } $self->_all_keys();
 }
 
 sub _key_exists {
     my ($self, $key) = @_;
-    return any { $key eq $_ } @{$self->_keys};
+    return any { $key eq $_ } $self->_all_keys();
 }
 
 sub _key_is_dynamic {
     my ($self, $key) = @_;
-    return any { $key eq $_ } @{$self->_dynamic_keys};
+    return unless $self->_key_exists($key);
+    return $self->_keys->{$key}->{key_type} eq 'dynamic';
 }
 
-sub get_type {
+sub _key_is_static {
     my ($self, $key) = @_;
-    return $self->_key_types->{$key};
+    return unless $self->_key_exists($key);
+    return $self->_keys->{$key}->{key_type} eq 'static';
+}
+
+sub get_data_type {
+    my ($self, $key) = @_;
+    return unless $self->_key_exists($key);
+    return $self->_keys->{$key}->{data_type};
 }
 
 sub _initialise {
@@ -616,8 +622,11 @@ sub _initialise {
         if ($def->{isa} eq 'section') {
             $self->_initialise($def->{contains}, $fully_qualified_path);
         } else {
-            push @{$def->{global} ? $self->_dynamic_keys : $self->_static_keys}, $fully_qualified_path;
-            $self->_key_types->{$fully_qualified_path} = $def->{isa};
+            $self->_keys->{$fully_qualified_path} = {
+                key_type  => $def->{global} ? 'dynamic' : 'static',
+                data_type => $def->{isa},
+                default   => $def->{default},
+            };
             $self->_set_default($fully_qualified_path, $def->{default}) if $def->{default};
         }
     }

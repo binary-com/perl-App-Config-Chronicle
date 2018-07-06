@@ -28,20 +28,20 @@ subtest 'Global revision = 0' => sub {
 
 subtest 'Dynamic keys' => sub {
     my $app_config = _new_app_config();
-    my $keys       = $app_config->_dynamic_keys;
-    is_deeply $keys, [EMAIL_KEY, REFRESH_KEY], 'Keys are listed correctly';
+    my @keys       = $app_config->_dynamic_keys;
+    is_deeply \@keys, [EMAIL_KEY, REFRESH_KEY], 'Keys are listed correctly';
 };
 
 subtest 'Static keys' => sub {
     my $app_config = _new_app_config();
-    my $keys       = $app_config->_static_keys;
-    is_deeply $keys, [ADMINS_KEY], 'Keys are listed correctly';
+    my @keys       = $app_config->_static_keys;
+    is_deeply \@keys, [ADMINS_KEY], 'Keys are listed correctly';
 };
 
 subtest 'All keys' => sub {
     my $app_config = _new_app_config();
-    my $keys       = $app_config->_keys;
-    is_deeply $keys, [EMAIL_KEY, REFRESH_KEY, ADMINS_KEY], 'Keys are listed correctly';
+    my @keys       = $app_config->_all_keys();
+    is_deeply \@keys, [EMAIL_KEY, REFRESH_KEY, ADMINS_KEY], 'Keys are listed correctly';
 };
 
 subtest 'Default values' => sub {
@@ -57,9 +57,9 @@ subtest 'Default values' => sub {
 
 subtest 'Check types' => sub {
     my $app_config = _new_app_config();
-    is $app_config->get_type(EMAIL_KEY), 'Str', 'Email type is correct';
-    is $app_config->get_type(ADMINS_KEY), 'ArrayRef', 'Admins type is correct';
-    is $app_config->get_type(REFRESH_KEY), 'Num', 'Refresh rate type is correct';
+    is $app_config->get_data_type(EMAIL_KEY), 'Str', 'Email type is correct';
+    is $app_config->get_data_type(ADMINS_KEY), 'ArrayRef', 'Admins type is correct';
+    is $app_config->get_data_type(REFRESH_KEY), 'Num', 'Refresh rate type is correct';
 };
 
 subtest 'Basic set and get' => sub {
