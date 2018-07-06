@@ -506,7 +506,7 @@ sub _retrieve_objects_from_chron {
 
 Retreives a past revision of an app config entry, where $rev is the number of revisions in the past requested.
 If the third argument is set to 1 the result of the query will be cached in Redis. This is useful if a certain
-    revision will be needed repeatedly, to avoid excess database access. By default this argument is 0.
+    revision will be needed repeatedly, to avoid excessive database access. By default this argument is 0.
 All cached revisions will become stale if the key is set with a new value.
 
 Example:
@@ -526,7 +526,7 @@ sub get_history {
     my $curr_obj  = $data_objs[0];
     my $hist_obj  = $data_objs[1];
 
-    # If no cache, or cache is stale, go straight to get from db
+    # If no cache, or cache is stale, get from db
     unless ($hist_obj && $hist_obj->{_local_rev} == $curr_obj->{_local_rev}) {
         $hist_obj = $self->chronicle_reader->get_history($self->setting_namespace, $key, $rev);
 
