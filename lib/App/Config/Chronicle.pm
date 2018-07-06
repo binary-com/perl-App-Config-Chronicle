@@ -394,9 +394,9 @@ sub _has_refresh_interval_passed {
 
 sub _is_cache_stale {
     my $self      = shift;
-    my $rev_cache = ($self->_retrieve_objects_from_cache(['_global_rev']))[0]->{data};
-    my $rev_chron = ($self->_retrieve_objects_from_chron(['_global_rev']))[0]->{data};
-    return ($rev_cache != $rev_chron);
+    my @rev_cache = $self->_retrieve_objects_from_cache(['_global_rev']);
+    my @rev_chron = $self->_retrieve_objects_from_chron(['_global_rev']);
+    return !($rev_cache[0] && $rev_chron[0] && $rev_cache[0]->{data} eq $rev_chron[0]->{data});
 }
 
 =head2 global_revision
@@ -408,7 +408,7 @@ This will correspond to the last time any of values were changed.
 
 sub global_revision {
     my $self = shift;
-    return ($self->_retrieve_objects(['_global_rev']))[0]->{data};
+    return ($self->get('_global_rev'));
 }
 
 =head2 set
@@ -493,8 +493,9 @@ sub get {
 
     my @result_objs = $self->_retrieve_objects($keys);
 
-    return $result_objs[0] ? $result_objs[0]->{data} : undef if $single_get;
-    return {map { $keys->[$_] => $result_objs[$_] ? $result_objs[$_]->{data} : undef } (0 .. scalar @$keys - 1)} unless $single_get;
+    return $result_objs[0] ? $result_objs[0]->{data} : $self->get_default($keys->[0]) if $single_get;
+    return {map { $keys->[$_] => $result_objs[$_] ? $result_objs[$_]->{data} : $self->get_default($keys->[$_]) } (0 .. scalar @$keys - 1)}
+        unless $single_get;
 
 }
 
@@ -625,6 +626,12 @@ sub get_data_type {
     return $self->_keys->{$key}->{data_type};
 }
 
+sub get_default {
+    my ($self, $key) = @_;
+    return unless $self->_key_exists($key);
+    return $self->_keys->{$key}->{default};
+}
+
 sub _initialise {
     my ($self, $keys, $path) = @_;
 
@@ -640,24 +647,13 @@ sub _initialise {
                 data_type => $def->{isa},
                 default   => $def->{default},
             };
-            $self->_set_default($fully_qualified_path, $def->{default}) if $def->{default};
         }
     }
-
-    $self->_set_default('_global_rev', 0);
-    return 1;
-}
-
-sub _set_default {
-    my ($self, $key, $default_value) = @_;
-    my $chron_obj = {
-        data       => $default_value,
-        _local_rev => 0,
+    $self->_keys->{_global_rev} = {
+        key_type  => 'special',
+        data_type => 'Num',
+        default   => 0,
     };
-    # Set default in Redis only if key doesn't already exist
-    $self->chronicle_writer->setnx($self->setting_namespace, $key, $chron_obj, Date::Utility->new);
-    # Set default in cache, subsequent call to update_cache will overwrite if necessary
-    $self->_store_objects_in_cache({$key => $chron_obj}) if $self->local_caching;
     return 1;
 }
 

@@ -41,7 +41,7 @@ subtest 'Static keys' => sub {
 subtest 'All keys' => sub {
     my $app_config = _new_app_config();
     my @keys       = $app_config->_all_keys();
-    is_deeply \@keys, [EMAIL_KEY, REFRESH_KEY, ADMINS_KEY], 'Keys are listed correctly';
+    is_deeply \@keys, ['_global_rev', EMAIL_KEY, REFRESH_KEY, ADMINS_KEY], 'Keys are listed correctly';
 };
 
 subtest 'Default values' => sub {
