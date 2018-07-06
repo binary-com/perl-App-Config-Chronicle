@@ -64,7 +64,6 @@ use App::Config::Chronicle::Attribute::Section;
 use App::Config::Chronicle::Attribute::Global;
 use Data::Hash::DotNotation;
 
-use lib '/home/git/binary-com/perl-Data-Chronicle/lib';
 use Data::Chronicle::Reader;
 use Data::Chronicle::Writer;
 
