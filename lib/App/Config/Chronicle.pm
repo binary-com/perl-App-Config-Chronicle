@@ -456,9 +456,11 @@ sub _store_objects_in_chron {
 
 =head2 get
 
-Takes either an arrayref of keys, or a single key, gets them atomically, and returns a hashref of key->values.
+Takes either an arrayref of keys, gets them atomically, and returns a hashref of key->values,
+including the global_revision under the key '_global_revision'
 If a key has an empty value, it will return with undef.
-get always returns the global_revision under the key '_global_revision'
+
+For convenience a get with just a key string will return the value only.
 
 Example:
     get(['key1','key2','key3',...]);
@@ -466,23 +468,34 @@ Returns:
     {'key1' => 'value1', 'key2' => 'value2', 'key3' => 'value3',..., '_global_revision' => '<number>'}
 
 Example:
-    get('key1');
+    get(['key1']);
 Returns:
     {'key1' => 'value1', '_global_revision' => '<number>'}
+
+Example:
+    get('key1');
+Returns:
+    'value1'
 
 =cut
 
 sub get {
     my ($self, $keys) = @_;
+    my $single_get;
 
-    $keys = [$keys] if ref $keys eq '';
+    if (ref $keys eq '') {
+        $keys = [$keys] if ref $keys eq '';
+        $single_get = 1;
+    }
     grep { die "Cannot get with key: $_ | Key must be defined'" unless $self->_key_exists($_) } @$keys;
 
-    push @$keys, '_global_rev';
+    push @$keys, '_global_rev' unless $single_get;
 
     my @result_objs = $self->_retrieve_objects($keys);
-    my %results = map { $keys->[$_] => $result_objs[$_] ? $result_objs[$_]->{data} : undef } (0 .. scalar @$keys - 1);
-    return \%results;
+
+    return $result_objs[0] ? $result_objs[0]->{data} : undef if $single_get;
+    return {map { $keys->[$_] => $result_objs[$_] ? $result_objs[$_]->{data} : undef } (0 .. scalar @$keys - 1)} unless $single_get;
+
 }
 
 sub _retrieve_objects {
@@ -623,7 +636,7 @@ sub _initialise {
             $self->_initialise($def->{contains}, $fully_qualified_path);
         } else {
             $self->_keys->{$fully_qualified_path} = {
-                key_type  => $def->{global} ? 'dynamic' : 'static',
+                key_type => $def->{global} ? 'dynamic' : 'static',
                 data_type => $def->{isa},
                 default   => $def->{default},
             };

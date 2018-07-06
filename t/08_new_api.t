@@ -46,9 +46,9 @@ subtest 'All keys' => sub {
 
 subtest 'Default values' => sub {
     my $app_config = _new_app_config();
-    is $app_config->get(EMAIL_KEY)->{EMAIL_KEY()},     DEFAULT_EMAIL, 'Default email is returned';
-    is $app_config->get(REFRESH_KEY)->{REFRESH_KEY()}, DEFAULT_REF,   'Default refresh is returned';
-    is_deeply $app_config->get(ADMINS_KEY)->{ADMINS_KEY()}, [], 'Default admins are returned';
+    is $app_config->get(EMAIL_KEY),   DEFAULT_EMAIL, 'Default email is returned';
+    is $app_config->get(REFRESH_KEY), DEFAULT_REF,   'Default refresh is returned';
+    is_deeply $app_config->get(ADMINS_KEY), [], 'Default admins are returned';
 
     ok my $multi = $app_config->get([EMAIL_KEY, REFRESH_KEY]), 'Mget defaults is ok';
     is $multi->{EMAIL_KEY()},   DEFAULT_EMAIL, 'Default email is returned';
@@ -57,17 +57,16 @@ subtest 'Default values' => sub {
 
 subtest 'Check types' => sub {
     my $app_config = _new_app_config();
-    is $app_config->get_data_type(EMAIL_KEY), 'Str', 'Email type is correct';
-    is $app_config->get_data_type(ADMINS_KEY), 'ArrayRef', 'Admins type is correct';
-    is $app_config->get_data_type(REFRESH_KEY), 'Num', 'Refresh rate type is correct';
+    is $app_config->get_data_type(EMAIL_KEY),   'Str',      'Email type is correct';
+    is $app_config->get_data_type(ADMINS_KEY),  'ArrayRef', 'Admins type is correct';
+    is $app_config->get_data_type(REFRESH_KEY), 'Num',      'Refresh rate type is correct';
 };
 
 subtest 'Basic set and get' => sub {
     my $app_config = _new_app_config();
 
     ok $app_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set 1 value succeeds';
-    is $app_config->get(EMAIL_KEY)->{EMAIL_KEY()}, FIRST_EMAIL, 'Email is retrieved successfully';
-    exists $app_config->get(EMAIL_KEY)->{'_global_rev'}, 'Get returns global revision';
+    is $app_config->get(EMAIL_KEY), FIRST_EMAIL, 'Email is retrieved successfully';
 };
 
 subtest 'Batch set and get' => sub {
@@ -83,6 +82,7 @@ subtest 'Batch set and get' => sub {
     ok my $res = $app_config->get([EMAIL_KEY, REFRESH_KEY]);
     is $res->{EMAIL_KEY()},   FIRST_EMAIL, 'Email is retrieved successfully';
     is $res->{REFRESH_KEY()}, REFRESH_SET, 'Refresh is retrieved successfully';
+    exists $res->{'_global_rev'}, 'Batch get returns global revision';
 };
 
 subtest 'Gets/sets of illegal keys' => sub {
@@ -176,7 +176,7 @@ subtest 'Perl level caching' => sub {
         $reader_module->mock('mget', sub { ok(0, 'mget should not be called here') });
 
         ok $app_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set email without write to chron';
-        is $app_config->get(EMAIL_KEY)->{EMAIL_KEY()}, FIRST_EMAIL, 'Email is retrieved without chron access';
+        is $app_config->get(EMAIL_KEY), FIRST_EMAIL, 'Email is retrieved without chron access';
 
         $reader_module->unmock('get');
         $reader_module->unmock('mget');
@@ -195,7 +195,7 @@ subtest 'Perl level caching' => sub {
         $writer_module->mock('mset', sub { ok(1, 'set or sget should be called here') });
 
         ok $app_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set email with write to chron';
-        is $app_config->get(EMAIL_KEY)->{EMAIL_KEY()}, FIRST_EMAIL, 'Email is retrieved with chron access';
+        is $app_config->get(EMAIL_KEY), FIRST_EMAIL, 'Email is retrieved with chron access';
 
         $reader_module->unmock('get');
         $writer_module->unmock('set');
@@ -226,23 +226,23 @@ subtest 'Cache syncing' => sub {
     my $direct_config = _new_app_config(local_caching => 0);
 
     ok $direct_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set email succeeds';
-    is $direct_config->get(EMAIL_KEY)->{EMAIL_KEY()},  FIRST_EMAIL,   'Email is retrieved successfully';
-    is $cached_config1->get(EMAIL_KEY)->{EMAIL_KEY()}, DEFAULT_EMAIL, 'Cache1 contains default before first update call';
-    is $cached_config2->get(EMAIL_KEY)->{EMAIL_KEY()}, DEFAULT_EMAIL, 'Cache2 contains default before first update call';
+    is $direct_config->get(EMAIL_KEY),  FIRST_EMAIL,   'Email is retrieved successfully';
+    is $cached_config1->get(EMAIL_KEY), DEFAULT_EMAIL, 'Cache1 contains default before first update call';
+    is $cached_config2->get(EMAIL_KEY), DEFAULT_EMAIL, 'Cache2 contains default before first update call';
 
     ok $cached_config1->update_cache(), 'Cache 1 is updated';
     ok $cached_config2->update_cache(), 'Cache 2 is updated';
-    is $cached_config1->get(EMAIL_KEY)->{EMAIL_KEY()}, FIRST_EMAIL, 'Cache1 is updated with email';
-    is $cached_config2->get(EMAIL_KEY)->{EMAIL_KEY()}, FIRST_EMAIL, 'Cache2 is updated with email';
+    is $cached_config1->get(EMAIL_KEY), FIRST_EMAIL, 'Cache1 is updated with email';
+    is $cached_config2->get(EMAIL_KEY), FIRST_EMAIL, 'Cache2 is updated with email';
 
     sleep 1;    #Ensure new value is recorded at a different time
     ok $cached_config1->set({EMAIL_KEY() => SECOND_EMAIL}), 'Set email via cache 1 succeeds';
-    is $direct_config->get(EMAIL_KEY)->{EMAIL_KEY()},  SECOND_EMAIL, 'Email is retrieved directly';
-    is $cached_config1->get(EMAIL_KEY)->{EMAIL_KEY()}, SECOND_EMAIL, 'Cache1 has updated email';
-    is $cached_config2->get(EMAIL_KEY)->{EMAIL_KEY()}, FIRST_EMAIL,  'Cache2 still has old email';
+    is $direct_config->get(EMAIL_KEY),  SECOND_EMAIL, 'Email is retrieved directly';
+    is $cached_config1->get(EMAIL_KEY), SECOND_EMAIL, 'Cache1 has updated email';
+    is $cached_config2->get(EMAIL_KEY), FIRST_EMAIL,  'Cache2 still has old email';
 
     ok $cached_config2->update_cache(), 'Cache 2 is updated';
-    is $cached_config2->get(EMAIL_KEY)->{EMAIL_KEY()}, SECOND_EMAIL, 'Cache2 has updated email';
+    is $cached_config2->get(EMAIL_KEY), SECOND_EMAIL, 'Cache2 has updated email';
 };
 
 subtest 'Cache refresh_interval' => sub {
@@ -253,19 +253,19 @@ subtest 'Cache refresh_interval' => sub {
     my $direct_config = _new_app_config(local_caching => 0);
 
     ok $direct_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set email succeeds';
-    is $direct_config->get(EMAIL_KEY)->{EMAIL_KEY()}, FIRST_EMAIL, 'Email is retrieved successfully';
+    is $direct_config->get(EMAIL_KEY), FIRST_EMAIL, 'Email is retrieved successfully';
     ok $cached_config->update_cache(), 'Cache is updated';
-    is $cached_config->get(EMAIL_KEY)->{EMAIL_KEY()}, FIRST_EMAIL, 'Email is retrieved successfully';
+    is $cached_config->get(EMAIL_KEY), FIRST_EMAIL, 'Email is retrieved successfully';
 
     sleep 1;    #Ensure new value is recorded at a different time
     ok $direct_config->set({EMAIL_KEY() => SECOND_EMAIL}), 'Set email succeeds';
-    is $direct_config->get(EMAIL_KEY)->{EMAIL_KEY()}, SECOND_EMAIL, 'Email is retrieved successfully';
+    is $direct_config->get(EMAIL_KEY), SECOND_EMAIL, 'Email is retrieved successfully';
     ok !$cached_config->update_cache(), 'update not done due to refresh_interval';
-    is $cached_config->get(EMAIL_KEY)->{EMAIL_KEY()}, FIRST_EMAIL, "Cache still has old value since interval hasn't passed";
+    is $cached_config->get(EMAIL_KEY), FIRST_EMAIL, "Cache still has old value since interval hasn't passed";
 
     sleep($cached_config->refresh_interval);
     ok $cached_config->update_cache(), 'Cache is updated';
-    is $cached_config->get(EMAIL_KEY)->{EMAIL_KEY()}, SECOND_EMAIL, 'Email is retrieved successfully from updated cache';
+    is $cached_config->get(EMAIL_KEY), SECOND_EMAIL, 'Email is retrieved successfully from updated cache';
 };
 
 sub _new_app_config {
