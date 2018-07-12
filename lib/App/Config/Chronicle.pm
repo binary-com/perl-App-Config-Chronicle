@@ -566,7 +566,7 @@ The chronicle_writer must have publish_on_set enabled.
 
 sub subscribe {
     my ($self, $key, $subref) = @_;
-    $self->chronicle_writer->subscribe($self->setting_namespace, $key, $subref);
+    return $self->chronicle_writer->subscribe($self->setting_namespace, $key, $subref);
 }
 
 =head2 unsubscribe
@@ -578,7 +578,7 @@ The chronicle_writer must have publish_on_set enabled.
 
 sub unsubscribe {
     my ($self, $key, $subref) = @_;
-    $self->chronicle_writer->unsubscribe($self->setting_namespace, $key, $subref);
+    return $self->chronicle_writer->unsubscribe($self->setting_namespace, $key, $subref);
 }
 
 has _keys => (
