@@ -2,6 +2,9 @@ Revision history for App-Config
 
 {{$NEXT}}
 
+0.07      12 July 2018
+    Added parallel implementation of per-key storage system
+
 0.06      2017-02-14 00:19:43+00:00 UTC
     Manage version with dzil
 0.05      2017-01-21 12:34:26+00:00 UTC
