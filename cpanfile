@@ -1,7 +1,7 @@
 requires 'perl', '5.014';
 
-requires 'Data::Chronicle::Reader';
-requires 'Data::Chronicle::Writer';
+requires 'Data::Chronicle::Reader', '>= v0.17';
+requires 'Data::Chronicle::Writer', '>= v0.17';
 requires 'Data::Hash::DotNotation';
 requires 'JSON::MaybeXS';
 requires 'Moose';
