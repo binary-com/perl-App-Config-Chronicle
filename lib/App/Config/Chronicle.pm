@@ -378,7 +378,7 @@ sub update_cache {
 
     my $keys = [$self->_dynamic_keys(), '_global_rev'];
     my @all_entries = $self->_retrieve_objects_from_chron($keys);
-    $self->_store_objects_in_cache({map { $keys->[$_] => $all_entries[$_] } (0 .. scalar @$keys - 1)});
+    $self->_store_objects_in_cache({map { $keys->[$_] => $all_entries[$_] } (0 .. $#$keys)});
 
     return 1;
 }
