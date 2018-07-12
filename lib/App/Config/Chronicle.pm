@@ -4,7 +4,7 @@ package App::Config::Chronicle;
 use strict;
 use warnings;
 use Time::HiRes qw(time);
-use List::Util qw(any pairs pairmap);
+use List::Util v1.29 qw(any pairs pairmap);
 
 =head1 NAME
 

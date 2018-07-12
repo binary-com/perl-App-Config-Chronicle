@@ -24,6 +24,7 @@ my %WriteMakefileArgs = (
     "JSON::XS" => 0,
     "Moose" => 0,
     "Time::HiRes" => 0,
+    "List::Util" => 1.29,
     "YAML::XS" => 0,
     "namespace::autoclean" => 0
   },
@@ -58,6 +59,7 @@ my %FallbackPrereqs = (
   "Test::MockObject" => 0,
   "Test::More" => "0.98",
   "Time::HiRes" => 0,
+  "List::Util" => 1.29,
   "YAML::XS" => 0,
   "namespace::autoclean" => 0
 );
