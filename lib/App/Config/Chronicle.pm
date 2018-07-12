@@ -424,7 +424,7 @@ sub set {
     my $rev_obj   = Date::Utility->new;
     my $rev_epoch = $rev_obj->{epoch};
 
-    grep { die "Cannot set with key: $_ | Key must be defined with 'global: 1'" unless $self->_key_is_dynamic($_) } keys %$pairs;
+    $self->_key_is_dynamic($_) or die "Cannot set with key: $_ | Key must be defined with 'global: 1'" foreach keys %$pairs;
 
     $pairs->{_global_rev} = $rev_epoch;
     my %key_objs_hash = pairmap { $a => {data => $b, _local_rev => $rev_epoch} } %$pairs;
@@ -482,20 +482,22 @@ sub get {
     my ($self, $keys) = @_;
     my $single_get;
 
-    if (ref $keys eq '') {
-        $keys = [$keys] if ref $keys eq '';
+    unless (ref $keys) {
+        $keys = [$keys];
         $single_get = 1;
     }
-    grep { die "Cannot get with key: $_ | Key must be defined'" unless $self->_key_exists($_) } @$keys;
+
+    $self->_key_exists($_) or die "Cannot get with key: $_ | Key must be defined" foreach @$keys;
 
     push @$keys, '_global_rev' unless $single_get;
 
     my @result_objs = $self->_retrieve_objects($keys);
 
-    return $result_objs[0] ? $result_objs[0]->{data} : $self->get_default($keys->[0]) if $single_get;
-    return {map { $keys->[$_] => $result_objs[$_] ? $result_objs[$_]->{data} : $self->get_default($keys->[$_]) } (0 .. scalar @$keys - 1)}
-        unless $single_get;
-
+    if ($single_get) {
+        return $result_objs[0] ? $result_objs[0]->{data} : $self->get_default($keys->[0]);
+    } else {
+        return {map { $keys->[$_] => $result_objs[$_] ? $result_objs[$_]->{data} : $self->get_default($keys->[$_]) } (0 .. scalar @$keys - 1)};
+    }
 }
 
 sub _retrieve_objects {
@@ -535,9 +537,7 @@ sub get_history {
 
     die "Cannot get history of key: $key | Key must be dynamic" unless $self->_key_is_dynamic($key);
 
-    my @data_objs = $self->_retrieve_objects([$key, $key . '::' . $rev]);
-    my $curr_obj  = $data_objs[0];
-    my $hist_obj  = $data_objs[1];
+    my ($curr_obj, $hist_obj) = $self->_retrieve_objects([$key, $key . '::' . $rev]);
 
     # If no cache, or cache is stale, get from db
     unless ($hist_obj && $hist_obj->{_local_rev} == $curr_obj->{_local_rev}) {
@@ -604,19 +604,17 @@ sub _static_keys {
 
 sub _key_exists {
     my ($self, $key) = @_;
-    return any { $key eq $_ } $self->_all_keys();
+    return exists $self->_keys->{$key};
 }
 
 sub _key_is_dynamic {
     my ($self, $key) = @_;
-    return unless $self->_key_exists($key);
-    return $self->_keys->{$key}->{key_type} eq 'dynamic';
+    return exists $self->_keys->{$key} && $self->_keys->{$key}->{key_type} eq 'dynamic';
 }
 
 sub _key_is_static {
     my ($self, $key) = @_;
-    return unless $self->_key_exists($key);
-    return $self->_keys->{$key}->{key_type} eq 'static';
+    return exists $self->_keys->{$key} && $self->_keys->{$key}->{key_type} eq 'static';
 }
 
 sub get_data_type {
