@@ -494,9 +494,9 @@ sub get {
     my @result_objs = $self->_retrieve_objects($keys);
 
     if ($single_get) {
-        return $result_objs[0] ? $result_objs[0]->{data} : $self->get_default($keys->[0]);
+        return $result_objs[0] ? $result_objs[0]->{data} : $self->_get_default($keys->[0]);
     } else {
-        return {map { $keys->[$_] => $result_objs[$_] ? $result_objs[$_]->{data} : $self->get_default($keys->[$_]) } (0 .. scalar @$keys - 1)};
+        return {map { $keys->[$_] => $result_objs[$_] ? $result_objs[$_]->{data} : $self->_get_default($keys->[$_]) } (0 .. scalar @$keys - 1)};
     }
 }
 
@@ -581,7 +581,7 @@ sub unsubscribe {
     return $self->chronicle_writer->unsubscribe($self->setting_namespace, $key, $subref);
 }
 
-has _keys => (
+has _keys_schema => (
     is      => 'ro',
     isa     => 'HashRef',
     default => sub { {} },
@@ -589,7 +589,7 @@ has _keys => (
 
 sub _all_keys {
     my $self = shift;
-    return keys %{$self->_keys};
+    return keys %{$self->_keys_schema};
 }
 
 sub _dynamic_keys {
@@ -604,29 +604,29 @@ sub _static_keys {
 
 sub _key_exists {
     my ($self, $key) = @_;
-    return exists $self->_keys->{$key};
+    return exists $self->_keys_schema->{$key};
 }
 
 sub _key_is_dynamic {
     my ($self, $key) = @_;
-    return exists $self->_keys->{$key} && $self->_keys->{$key}->{key_type} eq 'dynamic';
+    return exists $self->_keys_schema->{$key} && $self->_keys_schema->{$key}->{key_type} eq 'dynamic';
 }
 
 sub _key_is_static {
     my ($self, $key) = @_;
-    return exists $self->_keys->{$key} && $self->_keys->{$key}->{key_type} eq 'static';
+    return exists $self->_keys_schema->{$key} && $self->_keys_schema->{$key}->{key_type} eq 'static';
 }
 
 sub get_data_type {
     my ($self, $key) = @_;
     return unless $self->_key_exists($key);
-    return $self->_keys->{$key}->{data_type};
+    return $self->_keys_schema->{$key}->{data_type};
 }
 
-sub get_default {
+sub _get_default {
     my ($self, $key) = @_;
     return unless $self->_key_exists($key);
-    return $self->_keys->{$key}->{default};
+    return $self->_keys_schema->{$key}->{default};
 }
 
 sub _initialise {
@@ -639,14 +639,14 @@ sub _initialise {
         if ($def->{isa} eq 'section') {
             $self->_initialise($def->{contains}, $fully_qualified_path);
         } else {
-            $self->_keys->{$fully_qualified_path} = {
+            $self->_keys_schema->{$fully_qualified_path} = {
                 key_type => $def->{global} ? 'dynamic' : 'static',
                 data_type => $def->{isa},
                 default   => $def->{default},
             };
         }
     }
-    $self->_keys->{_global_rev} = {
+    $self->_keys_schema->{_global_rev} = {
         key_type  => 'special',
         data_type => 'Num',
         default   => 0,
