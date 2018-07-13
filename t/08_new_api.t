@@ -27,19 +27,19 @@ subtest 'Global revision = 0' => sub {
 
 subtest 'Dynamic keys' => sub {
     my $app_config = _new_app_config();
-    my @keys       = $app_config->_dynamic_keys;
+    my @keys       = $app_config->dynamic_keys;
     is_deeply [sort @keys], [EMAIL_KEY, REFRESH_KEY], 'Keys are listed correctly';
 };
 
 subtest 'Static keys' => sub {
     my $app_config = _new_app_config();
-    my @keys       = $app_config->_static_keys;
+    my @keys       = $app_config->static_keys;
     is_deeply [sort @keys], [ADMINS_KEY], 'Keys are listed correctly';
 };
 
 subtest 'All keys' => sub {
     my $app_config = _new_app_config();
-    my @keys       = $app_config->_all_keys();
+    my @keys       = $app_config->all_keys();
     is_deeply [sort @keys], ['_global_rev', ADMINS_KEY, EMAIL_KEY, REFRESH_KEY], 'Keys are listed correctly';
 };
 

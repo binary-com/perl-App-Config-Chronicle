@@ -376,7 +376,7 @@ sub update_cache {
 
     return unless $self->_is_cache_stale();
 
-    my $keys = [$self->_dynamic_keys(), '_global_rev'];
+    my $keys = [$self->dynamic_keys(), '_global_rev'];
     my @all_entries = $self->_retrieve_objects_from_chron($keys);
     $self->_store_objects_in_cache({map { $keys->[$_] => $all_entries[$_] } (0 .. $#$keys)});
 
@@ -587,19 +587,25 @@ has _keys_schema => (
     default => sub { {} },
 );
 
-sub _all_keys {
+sub all_keys {
     my $self = shift;
     return keys %{$self->_keys_schema};
 }
 
-sub _dynamic_keys {
+sub dynamic_keys {
     my $self = shift;
-    return grep { $self->_key_is_dynamic($_) } $self->_all_keys();
+    return grep { $self->_key_is_dynamic($_) } $self->all_keys();
 }
 
-sub _static_keys {
+sub static_keys {
     my $self = shift;
-    return grep { $self->_key_is_static($_) } $self->_all_keys();
+    return grep { $self->_key_is_static($_) } $self->all_keys();
+}
+
+sub get_data_type {
+    my ($self, $key) = @_;
+    return unless $self->_key_exists($key);
+    return $self->_keys_schema->{$key}->{data_type};
 }
 
 sub _key_exists {
@@ -615,12 +621,6 @@ sub _key_is_dynamic {
 sub _key_is_static {
     my ($self, $key) = @_;
     return exists $self->_keys_schema->{$key} && $self->_keys_schema->{$key}->{key_type} eq 'static';
-}
-
-sub get_data_type {
-    my ($self, $key) = @_;
-    return unless $self->_key_exists($key);
-    return $self->_keys_schema->{$key}->{data_type};
 }
 
 sub _get_default {
