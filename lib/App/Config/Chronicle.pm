@@ -587,20 +587,44 @@ has _keys_schema => (
     default => sub { {} },
 );
 
+=head2 all_keys
+
+Returns a list containing all keys in the config chronicle schema
+
+=cut
+
 sub all_keys {
     my $self = shift;
     return keys %{$self->_keys_schema};
 }
+
+=head2 dynamic_keys
+
+Returns a list containing only the dynamic keys in the config chronicle schema
+
+=cut
 
 sub dynamic_keys {
     my $self = shift;
     return grep { $self->_key_is_dynamic($_) } $self->all_keys();
 }
 
+=head2 static_keys
+
+Returns a list containing only the static keys in the config chronicle schema
+
+=cut
+
 sub static_keys {
     my $self = shift;
     return grep { $self->_key_is_static($_) } $self->all_keys();
 }
+
+=head2 get_data_type
+
+Returns the data type associated with a particular key
+
+=cut
 
 sub get_data_type {
     my ($self, $key) = @_;
