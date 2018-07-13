@@ -22,7 +22,6 @@ use constant {
 subtest 'Global revision = 0' => sub {
     my $app_config = _new_app_config();
     is $app_config->global_revision(), 0, 'Brand new app config returns 0 revision';
-
 };
 
 subtest 'Dynamic keys' => sub {
@@ -56,6 +55,7 @@ subtest 'Default values' => sub {
 
 subtest 'Check types' => sub {
     my $app_config = _new_app_config();
+    is $app_config->get_data_type(NON_EXT_KEY), undef,      'Bad key returns nothing';
     is $app_config->get_data_type(EMAIL_KEY),   'Str',      'Email type is correct';
     is $app_config->get_data_type(ADMINS_KEY),  'ArrayRef', 'Admins type is correct';
     is $app_config->get_data_type(REFRESH_KEY), 'Num',      'Refresh rate type is correct';
