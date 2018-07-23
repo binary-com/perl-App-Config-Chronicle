@@ -66,6 +66,7 @@ use Data::Hash::DotNotation;
 
 use Data::Chronicle::Reader;
 use Data::Chronicle::Writer;
+use Data::Chronicle::Subscriber;
 
 =head2 definition_yml
 
@@ -577,7 +578,8 @@ The chronicle_writer must have publish_on_set enabled.
 
 sub subscribe {
     my ($self, $key, $subref) = @_;
-    return $self->chronicle_writer->subscribe($self->setting_namespace, $key, $subref);
+    die 'Cannot subscribe without chronicle_subscriber' unless $self->chronicle_subscriber;
+    return $self->chronicle_subscriber->subscribe($self->setting_namespace, $key, $subref);
 }
 
 =head2 unsubscribe
@@ -589,7 +591,8 @@ The chronicle_writer must have publish_on_set enabled.
 
 sub unsubscribe {
     my ($self, $key, $subref) = @_;
-    return $self->chronicle_writer->unsubscribe($self->setting_namespace, $key, $subref);
+    die 'Cannot unsubscribe without chronicle_subscriber' unless $self->chronicle_subscriber;
+    return $self->chronicle_subscriber->unsubscribe($self->setting_namespace, $key);
 }
 
 has _keys_schema => (
