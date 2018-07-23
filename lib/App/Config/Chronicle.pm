@@ -590,7 +590,7 @@ The chronicle_writer must have publish_on_set enabled.
 =cut
 
 sub unsubscribe {
-    my ($self, $key, $subref) = @_;
+    my ($self, $key) = @_;
     die 'Cannot unsubscribe without chronicle_subscriber' unless $self->chronicle_subscriber;
     return $self->chronicle_subscriber->unsubscribe($self->setting_namespace, $key);
 }
