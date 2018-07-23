@@ -112,7 +112,7 @@ The chronicle connection that can notify via callbacks when particular configura
 =cut
 
 has chronicle_subscriber => (
-    is => 'ro',
+    is  => 'ro',
     isa => 'Data::Chronicle::Subscriber'
 );
 
@@ -494,7 +494,7 @@ sub get {
     my $single_get;
 
     unless (ref $keys) {
-        $keys = [$keys];
+        $keys       = [$keys];
         $single_get = 1;
     }
 
