@@ -17,8 +17,8 @@ my %WriteMakefileArgs = (
   "MIN_PERL_VERSION" => "5.014",
   "NAME" => "App::Config::Chronicle",
   "PREREQ_PM" => {
-    "Data::Chronicle::Reader" => 0.17,
-    "Data::Chronicle::Writer" => 0.17,
+    "Data::Chronicle::Reader" => 0.18,
+    "Data::Chronicle::Writer" => 0.18,
     "Data::Hash::DotNotation" => 0,
     "Date::Utility" => 0,
     "JSON::XS" => 0,
@@ -45,8 +45,8 @@ my %WriteMakefileArgs = (
 
 
 my %FallbackPrereqs = (
-  "Data::Chronicle::Reader" => 0.17,
-  "Data::Chronicle::Writer" => 0.17,
+  "Data::Chronicle::Reader" => 0.18,
+  "Data::Chronicle::Writer" => 0.18,
   "Data::Hash::DotNotation" => 0,
   "Date::Utility" => 0,
   "ExtUtils::MakeMaker" => 0,
