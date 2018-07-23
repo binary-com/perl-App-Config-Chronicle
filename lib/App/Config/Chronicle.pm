@@ -105,6 +105,17 @@ has chronicle_writer => (
     required => 1,
 );
 
+=head2 chronicle_subscriber
+
+The chronicle connection that can notify via callbacks when particular configuration items have a new value set. It should be an instance of L<Data::Chronicle::Subscriber>.
+
+=cut
+
+has chronicle_subscriber => (
+    is => 'ro',
+    isa => 'Data::Chronicle::Subscriber'
+);
+
 has setting_namespace => (
     is      => 'ro',
     isa     => 'Str',
