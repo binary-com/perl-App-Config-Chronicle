@@ -442,6 +442,12 @@ sub set {
     my %key_objs_hash = pairmap { $a => {data => $b, _local_rev => $rev_epoch} } %$pairs;
     $self->_store_objects(\%key_objs_hash, $rev_obj);
 
+    ######
+    # Adapter code
+    ######
+    $self->data_set->{global}->set($_, $pairs->{$_}) foreach keys %$pairs;
+    $self->save_dynamic();
+
     return 1;
 }
 
