@@ -646,6 +646,30 @@ sub get_data_type {
     return $self->_keys_schema->{$key}->{data_type};
 }
 
+=head2 get_default
+
+Returns the default value associated with a particular key
+
+=cut
+
+sub get_default {
+    my ($self, $key) = @_;
+    return unless $self->_key_exists($key);
+    return $self->_keys_schema->{$key}->{default};
+}
+
+=head2 get_description
+
+Returns the default value associated with a particular key
+
+=cut
+
+sub get_description {
+    my ($self, $key) = @_;
+    return unless $self->_key_exists($key);
+    return $self->_keys_schema->{$key}->{description};
+}
+
 sub _key_exists {
     my ($self, $key) = @_;
     return exists $self->_keys_schema->{$key};
@@ -659,12 +683,6 @@ sub _key_is_dynamic {
 sub _key_is_static {
     my ($self, $key) = @_;
     return exists $self->_keys_schema->{$key} && $self->_keys_schema->{$key}->{key_type} eq 'static';
-}
-
-sub _get_default {
-    my ($self, $key) = @_;
-    return unless $self->_key_exists($key);
-    return $self->_keys_schema->{$key}->{default};
 }
 
 sub _initialise {
@@ -681,6 +699,7 @@ sub _initialise {
                 key_type => $def->{global} ? 'dynamic' : 'static',
                 data_type => $def->{isa},
                 default   => $def->{default},
+                description => $def->{description},
             };
         }
     }
