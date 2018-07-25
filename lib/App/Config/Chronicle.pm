@@ -506,9 +506,9 @@ sub get {
     my @result_objs = $self->_retrieve_objects($keys);
 
     if ($single_get) {
-        return $result_objs[0] ? $result_objs[0]->{data} : $self->_get_default($keys->[0]);
+        return $result_objs[0] ? $result_objs[0]->{data} : $self->get_default($keys->[0]);
     } else {
-        return {map { $keys->[$_] => $result_objs[$_] ? $result_objs[$_]->{data} : $self->_get_default($keys->[$_]) } (0 .. scalar @$keys - 1)};
+        return {map { $keys->[$_] => $result_objs[$_] ? $result_objs[$_]->{data} : $self->get_default($keys->[$_]) } (0 .. scalar @$keys - 1)};
     }
 }
 
