@@ -615,7 +615,7 @@ Returns a list containing all keys in the config chronicle schema
 
 sub all_keys {
     my $self = shift;
-    return keys %{$self->_keys_schema};
+    return grep { not $self->_key_is_internal($_) } keys %{$self->_keys_schema};
 }
 
 =head2 dynamic_keys
@@ -626,7 +626,7 @@ Returns a list containing only the dynamic keys in the config chronicle schema
 
 sub dynamic_keys {
     my $self = shift;
-    return grep { $self->_key_is_dynamic($_) } $self->all_keys();
+    return grep { $self->_key_is_dynamic($_) } keys %{$self->_keys_schema};
 }
 
 =head2 static_keys
@@ -637,7 +637,7 @@ Returns a list containing only the static keys in the config chronicle schema
 
 sub static_keys {
     my $self = shift;
-    return grep { $self->_key_is_static($_) } $self->all_keys();
+    return grep { $self->_key_is_static($_) } keys %{$self->_keys_schema};
 }
 
 =head2 get_data_type
@@ -685,7 +685,7 @@ Returns the key type associated with a particular key
 sub get_key_type {
     my ($self, $key) = @_;
     return unless $self->_key_exists($key);
-    return $self->_keys_schema->{$key}->{ke/y_type};
+    return $self->_keys_schema->{$key}->{key_type};
 }
 
 sub _key_exists {
@@ -701,6 +701,11 @@ sub _key_is_dynamic {
 sub _key_is_static {
     my ($self, $key) = @_;
     return exists $self->_keys_schema->{$key} && $self->_keys_schema->{$key}->{key_type} eq 'static';
+}
+
+sub _key_is_internal {
+    my ($self, $key) = @_;
+    return exists $self->_keys_schema->{$key} && $self->_keys_schema->{$key}->{key_type} eq 'internal';
 }
 
 sub _initialise {
@@ -722,7 +727,7 @@ sub _initialise {
         }
     }
     $self->_keys_schema->{_global_rev} = {
-        key_type  => 'special',
+        key_type  => 'internal',
         data_type => 'Num',
         default   => 0,
     };

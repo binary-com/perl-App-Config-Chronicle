@@ -24,6 +24,14 @@ subtest 'Global revision = 0' => sub {
     is $app_config->global_revision(), 0, 'Brand new app config returns 0 revision';
 };
 
+subtest 'Cannot externally set global_revision' => sub {
+    my $app_config = _new_app_config();
+    throws_ok {
+        $app_config->set({'_global_rev' => 1});
+    }
+    qr/Cannot set with key/;
+};
+
 subtest 'Dynamic keys' => sub {
     my $app_config = _new_app_config();
     my @keys       = $app_config->dynamic_keys;
@@ -39,7 +47,7 @@ subtest 'Static keys' => sub {
 subtest 'All keys' => sub {
     my $app_config = _new_app_config();
     my @keys       = $app_config->all_keys();
-    is_deeply [sort @keys], ['_global_rev', ADMINS_KEY, EMAIL_KEY, REFRESH_KEY], 'Keys are listed correctly';
+    is_deeply [sort @keys], [ADMINS_KEY, EMAIL_KEY, REFRESH_KEY], 'Keys are listed correctly';
 };
 
 subtest 'Default values' => sub {
