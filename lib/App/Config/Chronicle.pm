@@ -676,6 +676,18 @@ sub get_description {
     return $self->_keys_schema->{$key}->{description};
 }
 
+=head2 get_key_type
+
+Returns the key type associated with a particular key
+
+=cut
+
+sub get_key_type {
+    my ($self, $key) = @_;
+    return unless $self->_key_exists($key);
+    return $self->_keys_schema->{$key}->{ke/y_type};
+}
+
 sub _key_exists {
     my ($self, $key) = @_;
     return exists $self->_keys_schema->{$key};
