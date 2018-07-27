@@ -308,7 +308,7 @@ sub check_for_update {
     my $self = shift;
 
     return unless $self->_has_refresh_interval_passed();
-    $self->_updated_at(time);
+    $self->_updated_at(Time::HiRes::time());
 
     # do check in Redis
     my $data_set = $self->data_set;
@@ -345,7 +345,7 @@ sub save_dynamic {
     }
 
     $settings->{global} = $global->data;
-    $settings->{_rev}   = time;
+    $settings->{_rev}   = Time::HiRes::time();
     $self->chronicle_writer->set($self->setting_namespace, $self->setting_name, $settings, Date::Utility->new);
 
     return 1;
