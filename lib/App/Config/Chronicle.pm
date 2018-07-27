@@ -52,7 +52,7 @@ The configuration file is a YAML file. Here is an example:
 
 Every attribute is very intuitive. If an item is global, you can change its value and the value will be stored into chronicle database by calling the method C<save_dynamic>.
 
-=head1 SUBROUTINES/METHODS
+=head1 SUBROUTINES/METHODS (LEGACY)
 
 =cut
 
@@ -122,6 +122,7 @@ has setting_namespace => (
     isa     => 'Str',
     default => 'app_settings',
 );
+
 has setting_name => (
     is       => 'ro',
     isa      => 'Str',
@@ -362,9 +363,68 @@ sub current_revision {
     return $settings->{_rev};
 }
 
+sub _build_data_set {
+    my $self = shift;
+
+    # relatively small yaml, so loading it shouldn't be expensive.
+    my $data_set->{app_config} = Data::Hash::DotNotation->new(data => {});
+
+    $self->_add_app_setttings($data_set, $self->chronicle_reader->get($self->setting_namespace, $self->setting_name) || {});
+
+    return $data_set;
+}
+
+sub _add_app_setttings {
+    my $self         = shift;
+    my $data_set     = shift;
+    my $app_settings = shift;
+
+    if ($app_settings) {
+        $data_set->{global} = Data::Hash::DotNotation->new(data => $app_settings->{global});
+        $data_set->{version} = $app_settings->{_rev};
+    }
+
+    return;
+}
+
+has dynamic_settings_info => (
+    is      => 'ro',
+    isa     => 'HashRef',
+    default => sub { {} },
+);
+
+sub _add_dynamic_setting_info {
+    my $self       = shift;
+    my $path       = shift;
+    my $definition = shift;
+
+    $self->dynamic_settings_info = {} unless ($self->dynamic_settings_info);
+    $self->dynamic_settings_info->{global} = {} unless ($self->dynamic_settings_info->{global});
+
+    $self->dynamic_settings_info->{global}->{$path} = {
+        type        => $definition->{isa},
+        default     => $definition->{default},
+        description => $definition->{description}};
+
+    return;
+}
+
+=head1 SUBROUTINES/METHODS (NEW)
 ######################################################
-###### New API stuff here
+###### Start new API 
 ######################################################
+
+=head2 local_caching
+
+If local_caching is set to the true then key-value pairs stored in Redis will be cached locally.
+
+Calling update_cache will update the local cache with any changes from Redis.
+refresh_interval defines (in seconds) the minimum time between seqequent updates.
+
+Calls to get on this object will only ever access the cache.
+Calls to set on this object will immediately update the values in the local cache and Redis.
+
+=cut
 
 has local_caching => (
     isa     => 'Bool',
@@ -736,54 +796,8 @@ sub _initialise {
 }
 
 ######################################################
-###### End new API stuff
+###### End new API
 ######################################################
-
-sub _build_data_set {
-    my $self = shift;
-
-    # relatively small yaml, so loading it shouldn't be expensive.
-    my $data_set->{app_config} = Data::Hash::DotNotation->new(data => {});
-
-    $self->_add_app_setttings($data_set, $self->chronicle_reader->get($self->setting_namespace, $self->setting_name) || {});
-
-    return $data_set;
-}
-
-sub _add_app_setttings {
-    my $self         = shift;
-    my $data_set     = shift;
-    my $app_settings = shift;
-
-    if ($app_settings) {
-        $data_set->{global} = Data::Hash::DotNotation->new(data => $app_settings->{global});
-        $data_set->{version} = $app_settings->{_rev};
-    }
-
-    return;
-}
-
-has dynamic_settings_info => (
-    is      => 'ro',
-    isa     => 'HashRef',
-    default => sub { {} },
-);
-
-sub _add_dynamic_setting_info {
-    my $self       = shift;
-    my $path       = shift;
-    my $definition = shift;
-
-    $self->dynamic_settings_info = {} unless ($self->dynamic_settings_info);
-    $self->dynamic_settings_info->{global} = {} unless ($self->dynamic_settings_info->{global});
-
-    $self->dynamic_settings_info->{global}->{$path} = {
-        type        => $definition->{isa},
-        default     => $definition->{default},
-        description => $definition->{description}};
-
-    return;
-}
 
 =head2 BUILD
 

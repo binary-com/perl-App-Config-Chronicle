@@ -1,6 +1,9 @@
 Revision history for App-Config
 
 {{$NEXT}}
+    Implemented new storage system based on key-values pairs instead of monolithic tree structure
+    Implemented new API
+    Implemented support for setting up Redis subscriptions
 
 0.07      12 July 2018
     Added parallel implementation of per-key storage system
