@@ -411,7 +411,7 @@ sub _add_dynamic_setting_info {
 
 =head1 SUBROUTINES/METHODS (NEW)
 ######################################################
-###### Start new API 
+###### Start new API
 ######################################################
 
 =head2 local_caching
