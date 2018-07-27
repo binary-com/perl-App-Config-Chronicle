@@ -505,7 +505,7 @@ sub set {
     ######
     # Temporary adapter code
     ######
-    return 1 if defined $pairs->{'system.email'} && $pairs->{'system.email'} eq 'abc@test.com'; # Avoid causing test fail
+    return 1 if defined $pairs->{'system.email'} && $pairs->{'system.email'} eq 'abc@test.com';    # Avoid causing test fail
     $self->data_set->{global}->set($_, $pairs->{$_}) foreach keys %$pairs;
     $self->save_dynamic();
 
@@ -781,8 +781,8 @@ sub _initialise {
         } else {
             $self->_keys_schema->{$fully_qualified_path} = {
                 key_type => $def->{global} ? 'dynamic' : 'static',
-                data_type => $def->{isa},
-                default   => $def->{default},
+                data_type   => $def->{isa},
+                default     => $def->{default},
                 description => $def->{description},
             };
         }

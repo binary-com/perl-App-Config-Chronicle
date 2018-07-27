@@ -71,10 +71,10 @@ subtest 'Check types' => sub {
 
 subtest 'Check key types' => sub {
     my $app_config = _new_app_config();
-    is $app_config->get_key_type(NON_EXT_KEY), undef,      'Bad key returns nothing';
-    is $app_config->get_key_type(EMAIL_KEY),   'dynamic',      'Email type is correct';
-    is $app_config->get_key_type(ADMINS_KEY),  'static', 'Admins type is correct';
-    is $app_config->get_key_type(REFRESH_KEY), 'dynamic',      'Refresh rate type is correct';
+    is $app_config->get_key_type(NON_EXT_KEY), undef,     'Bad key returns nothing';
+    is $app_config->get_key_type(EMAIL_KEY),   'dynamic', 'Email type is correct';
+    is $app_config->get_key_type(ADMINS_KEY),  'static',  'Admins type is correct';
+    is $app_config->get_key_type(REFRESH_KEY), 'dynamic', 'Refresh rate type is correct';
 };
 
 subtest 'Basic set and get' => sub {
