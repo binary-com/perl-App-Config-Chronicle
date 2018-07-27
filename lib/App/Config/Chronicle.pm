@@ -409,7 +409,7 @@ sub _add_dynamic_setting_info {
     return;
 }
 
-=head1 SUBROUTINES/METHODS (NEW)
+=head1 SUBROUTINES/METHODS
 ######################################################
 ###### Start new API
 ######################################################
@@ -444,7 +444,7 @@ sub update_cache {
     die 'Local caching not enabled' unless $self->local_caching;
 
     return unless $self->_has_refresh_interval_passed();
-    $self->_updated_at(time);
+    $self->_updated_at(Time::HiRes::time());
 
     return unless $self->_is_cache_stale();
 
@@ -457,7 +457,7 @@ sub update_cache {
 
 sub _has_refresh_interval_passed {
     my $self                   = shift;
-    my $now                    = time;
+    my $now                    = Time::HiRes::time();
     my $prev_update            = $self->_updated_at;
     my $time_since_prev_update = $now - $prev_update;
     return ($time_since_prev_update > $self->refresh_interval);
