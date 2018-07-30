@@ -1,12 +1,11 @@
 requires 'perl', '5.014';
 
-requires 'Data::Chronicle::Reader', '>= v0.18';
-requires 'Data::Chronicle::Writer', '>= v0.18';
+requires 'Data::Chronicle', '>= 0.18';
 requires 'Data::Hash::DotNotation';
 requires 'JSON::MaybeXS';
 requires 'Moose';
 requires 'Time::HiRes';
-requires 'List::Util', '>= v1.29';
+requires 'List::Util', '>= 1.29';
 requires 'Date::Utility';
 requires 'YAML::XS';
 requires 'namespace::autoclean';
