@@ -68,6 +68,8 @@ use Data::Chronicle::Reader;
 use Data::Chronicle::Writer;
 use Data::Chronicle::Subscriber;
 
+use constant REDIS_HISTORY_TTL => 7 * 86400;    # 7 days
+
 =head2 definition_yml
 
 The YAML file that store the configuration
@@ -435,7 +437,7 @@ has local_caching => (
 =head2 update_cache
 
 Loads latest values from data chronicle into local cache.
-Calls to this method are rate-limited by <refresh_interval>.
+Calls to this method are rate-limited by C<refresh_interval>.
 
 =cut
 
@@ -534,8 +536,10 @@ sub _store_objects_in_chron {
 
 =head2 get
 
-Takes either an arrayref of keys, gets them atomically, and returns a hashref of key->values,
-including the global_revision under the key '_global_revision'
+Takes either
+    - an arrayref of keys, gets them atomically, and returns a hashref of key->values,
+    including the global_revision under the key '_global_revision'.
+    - a single key (as a string), gets the value, and returns it directly.
 If a key has an empty value, it will return with undef.
 
 For convenience a get with just a key string will return the value only.
@@ -599,7 +603,7 @@ sub _retrieve_objects_from_chron {
 =head2 get_history
 
 Retreives a past revision of an app config entry, where $rev is the number of revisions in the past requested.
-If the third argument is set to 1 the result of the query will be cached in Redis. This is useful if a certain
+If the optional third argument is true then result of the query will be cached in Redis. This is useful if a certain
     revision will be needed repeatedly, to avoid excessive database access. By default this argument is 0.
 All cached revisions will become stale if the key is set with a new value.
 
@@ -627,9 +631,9 @@ sub get_history {
             {$key . '::' . $rev => $hist_obj},
             Date::Utility->new,
             [
-                0,         #<-- IMPORTANT: disables archiving
-                0,         #<-- IMPORTANT: supresses publication
-                604800,    #<-- ttl = 7 days so that stale histories don't stay indefinitely.
+                0,                    #<-- IMPORTANT: disables archiving
+                0,                    #<-- IMPORTANT: supresses publication
+                REDIS_HISTORY_TTL,    #<-- ttl = 7 days so that stale histories don't stay indefinitely.
             ]) if $hist_obj && $cache;
     }
     return $hist_obj->{data} if $hist_obj;
