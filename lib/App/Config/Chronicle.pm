@@ -68,7 +68,7 @@ use Data::Chronicle::Reader;
 use Data::Chronicle::Writer;
 use Data::Chronicle::Subscriber;
 
-=head2 definition_yml
+=head2 REDIS_HISTORY_TTL
 
 The maximum length of time (in seconds) that a cached history entry will stay in Redis.
 
