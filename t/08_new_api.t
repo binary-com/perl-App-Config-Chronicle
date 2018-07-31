@@ -1,6 +1,7 @@
 use Test::Most;
 use Test::Warn;
 use Test::MockModule;
+use Test::MockTime qw( :all );
 use Data::Chronicle::Mock;
 use App::Config::Chronicle;
 use FindBin qw($Bin);
@@ -18,6 +19,10 @@ use constant {
     DEFAULT_REF   => 10,
     NON_EXT_KEY   => 'system.wrong'
 };
+
+my $tick = 0;
+set_fixed_time($tick);
+*Time::HiRes::time = \&Test::MockTime::time;
 
 subtest 'Global revision = 0' => sub {
     my $app_config = _new_app_config();
@@ -131,13 +136,13 @@ subtest 'History chronicling' => sub {
     my $module     = Test::MockModule->new('Data::Chronicle::Reader');
 
     subtest 'Add history of values' => sub {
-        # Sleeps ensure the chronicle records them at different times
+        set_fixed_time(++$tick);
         ok $app_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set 1st value succeeds';
-        sleep 1;
+        set_fixed_time(++$tick);
         ok $app_config->set({EMAIL_KEY() => SECOND_EMAIL}), 'Set 2nd value succeeds';
-        sleep 1;
+        set_fixed_time(++$tick);
         ok $app_config->set({EMAIL_KEY() => THIRD_EMAIL}), 'Set 3rd value succeeds';
-        sleep 1;
+        set_fixed_time(++$tick);
     };
 
     subtest 'Get history' => sub {
@@ -223,6 +228,7 @@ subtest 'Global revision updates' => sub {
     my $app_config = _new_app_config();
     my $old_rev    = $app_config->global_revision();
 
+    set_fixed_time(++$tick);
     ok $app_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set 1 value succeeds';
 
     my $new_rev = $app_config->global_revision();
@@ -250,7 +256,7 @@ subtest 'Cache syncing' => sub {
     is $cached_config1->get(EMAIL_KEY), FIRST_EMAIL, 'Cache1 is updated with email';
     is $cached_config2->get(EMAIL_KEY), FIRST_EMAIL, 'Cache2 is updated with email';
 
-    sleep 1;    #Ensure new value is recorded at a different time
+    set_fixed_time(++$tick);    #Ensure new value is recorded at a different time
     ok $cached_config1->set({EMAIL_KEY() => SECOND_EMAIL}), 'Set email via cache 1 succeeds';
     is $direct_config->get(EMAIL_KEY),  SECOND_EMAIL, 'Email is retrieved directly';
     is $cached_config1->get(EMAIL_KEY), SECOND_EMAIL, 'Cache1 has updated email';
@@ -267,18 +273,19 @@ subtest 'Cache refresh_interval' => sub {
     );
     my $direct_config = _new_app_config(local_caching => 0);
 
+    set_fixed_time(++$tick);    #Ensure new value is recorded at a different time
     ok $direct_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set email succeeds';
     is $direct_config->get(EMAIL_KEY), FIRST_EMAIL, 'Email is retrieved successfully';
     ok $cached_config->update_cache(), 'Cache is updated';
     is $cached_config->get(EMAIL_KEY), FIRST_EMAIL, 'Email is retrieved successfully';
 
-    sleep 1;    #Ensure new value is recorded at a different time
+    set_fixed_time(++$tick);    #Ensure new value is recorded at a different time
     ok $direct_config->set({EMAIL_KEY() => SECOND_EMAIL}), 'Set email succeeds';
     is $direct_config->get(EMAIL_KEY), SECOND_EMAIL, 'Email is retrieved successfully';
     ok !$cached_config->update_cache(), 'update not done due to refresh_interval';
     is $cached_config->get(EMAIL_KEY), FIRST_EMAIL, "Cache still has old value since interval hasn't passed";
 
-    sleep($cached_config->refresh_interval);
+    set_fixed_time($tick + $cached_config->refresh_interval);
     ok $cached_config->update_cache(), 'Cache is updated';
     is $cached_config->get(EMAIL_KEY), SECOND_EMAIL, 'Email is retrieved successfully from updated cache';
 };
