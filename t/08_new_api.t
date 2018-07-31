@@ -166,13 +166,15 @@ subtest 'History chronicling' => sub {
     };
 
     subtest 'Check caching can be disabled' => sub {
-        plan tests => 5;    # Ensures the ok checks inside the mocked sub are run
+        my $get_history_called;
 
         $app_config = _new_app_config();
-        $module->mock('get_history', sub { ok(1, 'get_history should be called here'); return {data => SECOND_EMAIL} });
+        $module->mock('get_history', sub { $get_history_called++; return {data => SECOND_EMAIL} });
         is($app_config->get_history(EMAIL_KEY, 2), SECOND_EMAIL, 'Email retrieved via chronicle');
         is($app_config->get_history(EMAIL_KEY, 2), SECOND_EMAIL, 'Email retrieved via chronicle again');
         $module->unmock('get_history');
+
+        is $get_history_called, 2, 'get_history was called twice';
     };
 
     subtest 'Rev too old' => sub {
@@ -203,24 +205,20 @@ subtest 'Perl level caching' => sub {
     };
 
     subtest 'Chronicle should be engaged with perl caching disabled' => sub {
-        plan tests => 5;    # Ensures the ok checks inside the mocked subs are run
-
+        my $chronicle_gets;
         my $app_config = _new_app_config(local_caching => 0);
 
         my $reader_module = Test::MockModule->new('Data::Chronicle::Reader');
-        $reader_module->mock('get',  sub { ok(1, 'get or mget should be called here'); return {data => FIRST_EMAIL} });
-        $reader_module->mock('mget', sub { ok(1, 'get or mget should be called here'); return {data => FIRST_EMAIL} });
-        my $writer_module = Test::MockModule->new('Data::Chronicle::Writer');
-        $writer_module->mock('set',  sub { ok(1, 'set or mset should be called here') });
-        $writer_module->mock('mset', sub { ok(1, 'set or mset should be called here') });
+        $reader_module->mock('get',  sub { $chronicle_gets++; return {data => FIRST_EMAIL} });
+        $reader_module->mock('mget', sub { $chronicle_gets++; return {data => FIRST_EMAIL} });
 
         ok $app_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set email with write to chron';
         is $app_config->get(EMAIL_KEY), FIRST_EMAIL, 'Email is retrieved with chron access';
 
+        ok $chronicle_gets, 'get engages chronicle';
+
         $reader_module->unmock('get');
-        $writer_module->unmock('set');
         $reader_module->unmock('mget');
-        $writer_module->unmock('mset');
     };
 };
 
