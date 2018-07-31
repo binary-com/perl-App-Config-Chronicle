@@ -193,11 +193,12 @@ subtest 'Perl level caching' => sub {
     subtest "Chronicle shouldn't be engaged with perl caching enabled" => sub {
         my $app_config = _new_app_config(local_caching => 1);
 
+        ok $app_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set email to chron';
+
         my $reader_module = Test::MockModule->new('Data::Chronicle::Reader');
         $reader_module->mock('get',  sub { ok(0, 'get should not be called here') });
         $reader_module->mock('mget', sub { ok(0, 'mget should not be called here') });
 
-        ok $app_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set email without write to chron';
         is $app_config->get(EMAIL_KEY), FIRST_EMAIL, 'Email is retrieved without chron access';
 
         $reader_module->unmock('get');
