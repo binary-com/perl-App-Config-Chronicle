@@ -204,10 +204,10 @@ subtest 'Perl level caching' => sub {
 
         my $reader_module = Test::MockModule->new('Data::Chronicle::Reader');
         $reader_module->mock('get',  sub { ok(1, 'get or mget should be called here'); {data => FIRST_EMAIL} });
-        $reader_module->mock('mget', sub { ok(1, 'get or mgetshould be called here');  {data => FIRST_EMAIL} });
+        $reader_module->mock('mget', sub { ok(1, 'get or mget should be called here'); {data => FIRST_EMAIL} });
         my $writer_module = Test::MockModule->new('Data::Chronicle::Writer');
-        $writer_module->mock('set',  sub { ok(1, 'set or sget should be called here') });
-        $writer_module->mock('mset', sub { ok(1, 'set or sget should be called here') });
+        $writer_module->mock('set',  sub { ok(1, 'set or mset should be called here') });
+        $writer_module->mock('mset', sub { ok(1, 'set or mset should be called here') });
 
         ok $app_config->set({EMAIL_KEY() => FIRST_EMAIL}), 'Set email with write to chron';
         is $app_config->get(EMAIL_KEY), FIRST_EMAIL, 'Email is retrieved with chron access';
