@@ -169,7 +169,7 @@ subtest 'History chronicling' => sub {
         plan tests => 5;    # Ensures the ok checks inside the mocked sub are run
 
         $app_config = _new_app_config();
-        $module->mock('get_history', sub { ok(1, 'get_history should be called here'); {data => SECOND_EMAIL} });
+        $module->mock('get_history', sub { ok(1, 'get_history should be called here'); return {data => SECOND_EMAIL} });
         is($app_config->get_history(EMAIL_KEY, 2), SECOND_EMAIL, 'Email retrieved via chronicle');
         is($app_config->get_history(EMAIL_KEY, 2), SECOND_EMAIL, 'Email retrieved via chronicle again');
         $module->unmock('get_history');
@@ -208,8 +208,8 @@ subtest 'Perl level caching' => sub {
         my $app_config = _new_app_config(local_caching => 0);
 
         my $reader_module = Test::MockModule->new('Data::Chronicle::Reader');
-        $reader_module->mock('get',  sub { ok(1, 'get or mget should be called here'); {data => FIRST_EMAIL} });
-        $reader_module->mock('mget', sub { ok(1, 'get or mget should be called here'); {data => FIRST_EMAIL} });
+        $reader_module->mock('get',  sub { ok(1, 'get or mget should be called here'); return {data => FIRST_EMAIL} });
+        $reader_module->mock('mget', sub { ok(1, 'get or mget should be called here'); return {data => FIRST_EMAIL} });
         my $writer_module = Test::MockModule->new('Data::Chronicle::Writer');
         $writer_module->mock('set',  sub { ok(1, 'set or mset should be called here') });
         $writer_module->mock('mset', sub { ok(1, 'set or mset should be called here') });
