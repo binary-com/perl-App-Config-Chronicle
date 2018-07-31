@@ -14,6 +14,7 @@ on test => sub {
     requires 'Test::MockObject';
     requires 'Test::More', '>= 0.98';
     requires 'Test::NoWarnings';
+    requires 'Test::MockTime';
 };
 
 on develop => sub {
