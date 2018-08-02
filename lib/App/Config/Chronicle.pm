@@ -539,7 +539,7 @@ sub _store_objects_in_chron {
 
 Takes either
     - an arrayref of keys, gets them atomically, and returns a hashref of key->values,
-    including the global_revision under the key '_global_revision'.
+    including the global_revision under the key '_global_rev'.
     - a single key (as a string), gets the value, and returns it directly.
 If a key has an empty value, it will return with undef.
 
@@ -548,12 +548,12 @@ For convenience a get with just a key string will return the value only.
 Example:
     get(['key1','key2','key3',...]);
 Returns:
-    {'key1' => 'value1', 'key2' => 'value2', 'key3' => 'value3',..., '_global_revision' => '<number>'}
+    {'key1' => 'value1', 'key2' => 'value2', 'key3' => 'value3',..., '_global_rev' => '<number>'}
 
 Example:
     get(['key1']);
 Returns:
-    {'key1' => 'value1', '_global_revision' => '<number>'}
+    {'key1' => 'value1', '_global_rev' => '<number>'}
 
 Example:
     get('key1');
