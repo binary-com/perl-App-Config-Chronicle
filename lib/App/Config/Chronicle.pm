@@ -10,13 +10,9 @@ use List::Util qw(any pairs pairmap);
 
 App::Config::Chronicle - An OO configuration module which can be changed and stored into chronicle database.
 
-=head1 VERSION
-
-Version 0.07
-
 =cut
 
-our $VERSION = '0.07';
+our $VERSION = '0.06';
 
 =head1 SYNOPSIS
 
