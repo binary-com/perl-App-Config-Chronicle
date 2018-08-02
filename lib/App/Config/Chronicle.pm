@@ -483,7 +483,7 @@ This will correspond to the last time any of values were changed.
 
 sub global_revision {
     my $self = shift;
-    return ($self->get('_global_rev'));
+    return $self->get('_global_rev');
 }
 
 =head2 set
