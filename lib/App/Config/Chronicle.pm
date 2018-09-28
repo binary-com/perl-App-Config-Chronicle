@@ -340,6 +340,10 @@ sub save_dynamic {
     my $self = shift;
     my $settings = $self->chronicle_reader->get($self->setting_namespace, $self->setting_name) || {};
 
+    my ($package, $filename, $line) = caller;
+    warn "Deprecated call used (save_dynamic). Called from package: $package | file: $filename | line: $line"
+        if $package ne __PACKAGE__;
+
     #Cleanup globals
     my $global = Data::Hash::DotNotation->new();
     foreach my $key (keys %{$self->dynamic_settings_info->{global}}) {
