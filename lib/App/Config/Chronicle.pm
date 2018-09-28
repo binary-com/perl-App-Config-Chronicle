@@ -330,6 +330,12 @@ sub check_for_update {
     return $db_version;
 }
 
+has _warn_for_deprecated => (
+    is       => 'ro',
+    isa      => 'Num',
+    default  => 1,
+);
+
 =head2 save_dynamic
 
 Save dynamic settings into chronicle db
@@ -342,7 +348,7 @@ sub save_dynamic {
 
     my ($package, $filename, $line) = caller;
     warn "Deprecated call used (save_dynamic). Called from package: $package | file: $filename | line: $line"
-        if $package ne __PACKAGE__;
+        if ($self->_warn_for_deprecated && $package ne __PACKAGE__);
 
     #Cleanup globals
     my $global = Data::Hash::DotNotation->new();
