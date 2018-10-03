@@ -330,12 +330,6 @@ sub check_for_update {
     return $db_version;
 }
 
-has _warn_for_deprecated => (
-    is       => 'ro',
-    isa      => 'Num',
-    default  => 1,
-);
-
 =head2 save_dynamic
 
 Save dynamic settings into chronicle db
@@ -347,8 +341,8 @@ sub save_dynamic {
     my $settings = $self->chronicle_reader->get($self->setting_namespace, $self->setting_name) || {};
 
     my ($package, $filename, $line) = caller;
-    warn "Deprecated call used (save_dynamic). Called from package: $package | file: $filename | line: $line"
-        if ($self->_warn_for_deprecated && $package ne __PACKAGE__);
+    warnings::warnif deprecated =>
+        "Deprecated call used (save_dynamic). Called from package: $package | file: $filename | line: $line";
 
     #Cleanup globals
     my $global = Data::Hash::DotNotation->new();
@@ -519,8 +513,11 @@ sub set {
     ######
     # Temporary adapter code
     ######
+    {
+        no warnings 'deprecated';
     $self->data_set->{global}->set($_, $pairs->{$_}) foreach keys %$pairs;
     $self->save_dynamic();
+    }
 
     return 1;
 }
