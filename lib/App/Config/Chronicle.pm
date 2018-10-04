@@ -871,11 +871,13 @@ L<http://search.cpan.org/dist/App-Config/>
 =cut
 
 # helper on "warnings" scope
+## no critic (ProhibitMultiplePackages, ProhibitNoWarnings)
 package helper {
     sub _save_dynamic_suppress_warning {
         my $self = shift;
         no warnings 'deprecated';
         $self->save_dynamic();
+        return;
     }
 }
 
