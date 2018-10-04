@@ -1,4 +1,4 @@
-package App::Config::Chronicle;
+package App::Config::Chronicle {
 # ABSTRACT: Provides Data::Chronicle-backed configuration storage
 
 use strict;
@@ -513,11 +513,8 @@ sub set {
     ######
     # Temporary adapter code
     ######
-    {
-        no warnings 'deprecated';
     $self->data_set->{global}->set($_, $pairs->{$_}) foreach keys %$pairs;
-    $self->save_dynamic();
-    }
+    main::save_dynamic_suppress_warning($self);
 
     return 1;
 }
@@ -872,5 +869,12 @@ L<http://search.cpan.org/dist/App-Config/>
 =head1 ACKNOWLEDGEMENTS
 
 =cut
+}
+
+sub save_dynamic_suppress_warning {
+    my $self = shift;
+    no warnings 'deprecated';
+    $self->save_dynamic();
+}
 
 1;    # End of App::Config::Chronicle
