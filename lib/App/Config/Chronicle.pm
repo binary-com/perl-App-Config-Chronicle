@@ -341,7 +341,7 @@ sub save_dynamic {
     my ($package, $filename, $line) = caller;
     warnings::warnif deprecated =>
         "Deprecated call used (save_dynamic). Called from package: $package | file: $filename | line: $line";
-    $self->_save_dynamic(@_)
+    return $self->_save_dynamic(@_);
 }
 
 sub _save_dynamic {
