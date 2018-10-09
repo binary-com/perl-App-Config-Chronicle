@@ -338,11 +338,15 @@ Save dynamic settings into chronicle db
 
 sub save_dynamic {
     my $self = shift;
-    my $settings = $self->chronicle_reader->get($self->setting_namespace, $self->setting_name) || {};
-
     my ($package, $filename, $line) = caller;
     warnings::warnif deprecated =>
         "Deprecated call used (save_dynamic). Called from package: $package | file: $filename | line: $line";
+    $self->_save_dynamic(@_)
+}
+
+sub _save_dynamic {
+    my $self = shift;
+    my $settings = $self->chronicle_reader->get($self->setting_namespace, $self->setting_name) || {};
 
     #Cleanup globals
     my $global = Data::Hash::DotNotation->new();
@@ -514,7 +518,7 @@ sub set {
     # Temporary adapter code
     ######
     $self->data_set->{global}->set($_, $pairs->{$_}) foreach keys %$pairs;
-    helper::_save_dynamic_suppress_warning($self);
+    $self->_save_dynamic();
 
     return 1;
 }
@@ -869,16 +873,5 @@ L<http://search.cpan.org/dist/App-Config/>
 =head1 ACKNOWLEDGEMENTS
 
 =cut
-
-# helper on "warnings" scope
-## no critic (ProhibitMultiplePackages, ProhibitNoWarnings)
-package helper {
-    sub _save_dynamic_suppress_warning {
-        my $self = shift;
-        no warnings 'deprecated';
-        $self->save_dynamic();
-        return;
-    }
-}
 
 1;    # End of App::Config::Chronicle
