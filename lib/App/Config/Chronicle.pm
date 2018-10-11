@@ -338,6 +338,14 @@ Save dynamic settings into chronicle db
 
 sub save_dynamic {
     my $self = shift;
+    my ($package, $filename, $line) = caller;
+    warnings::warnif deprecated =>
+        "Deprecated call used (save_dynamic). Called from package: $package | file: $filename | line: $line";
+    return $self->_save_dynamic();
+}
+
+sub _save_dynamic {
+    my $self = shift;
     my $settings = $self->chronicle_reader->get($self->setting_namespace, $self->setting_name) || {};
 
     #Cleanup globals
@@ -510,7 +518,7 @@ sub set {
     # Temporary adapter code
     ######
     $self->data_set->{global}->set($_, $pairs->{$_}) foreach keys %$pairs;
-    $self->save_dynamic();
+    $self->_save_dynamic();
 
     return 1;
 }

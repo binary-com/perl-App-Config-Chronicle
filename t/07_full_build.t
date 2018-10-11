@@ -3,6 +3,7 @@ use Test::Warn;
 use Data::Chronicle::Mock;
 use App::Config::Chronicle;
 use FindBin qw($Bin);
+no warnings 'deprecated';
 
 my $app_config;
 my ($chronicle_r, $chronicle_w) = Data::Chronicle::Mock::get_mocked_chronicle();
