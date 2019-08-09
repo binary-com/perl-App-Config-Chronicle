@@ -368,11 +368,20 @@ sub _save_dynamic {
 loads setting from chronicle reader and returns the last revision and drops them
 
 =cut
+{
+    my %c;
+    sub current_revision {
+        my $self = shift;
+        my $t = CORE::time;
+        my $k = $self->setting_name . "\0" . $self->setting_namespace;
+        my $el = $c{$k};
+        return $el->[1] if $el and $el->[0]>=$t;
 
-sub current_revision {
-    my $self = shift;
-    my $settings = $self->chronicle_reader->get($self->setting_namespace, $self->setting_name);
-    return $settings->{_rev};
+        my $r = $self->chronicle_reader->get($self->setting_namespace, $self->setting_name)->{_rev};
+        $c{$k} = [$t, $r];
+
+        return $r;
+    }
 }
 
 sub _build_data_set {
