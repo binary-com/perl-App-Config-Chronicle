@@ -4,6 +4,8 @@ use Moose;
 use namespace::autoclean;
 extends 'App::Config::Chronicle::Node';
 
+## VERSION
+
 =head1 NAME
 
 App::Config::Chronicle::Attribute::Section

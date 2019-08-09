@@ -3,6 +3,8 @@ package App::Config::Chronicle::Attribute::Global;
 use Moose;
 extends 'App::Config::Chronicle::Attribute';
 
+## VERSION
+
 =head1 NAME
 
 App::Config::Chronicle::Attribute::Global

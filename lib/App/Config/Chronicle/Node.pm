@@ -2,6 +2,8 @@ package App::Config::Chronicle::Node;
 
 use Moose;
 
+## VERSION
+
 =head1 NAME
 
 App::Config::Chronicle::Node

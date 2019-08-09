@@ -31,6 +31,11 @@ The configuration file is a YAML file. Here is an example:
           isa: Str
           default: "dummy@mail.com"
           global: 1
+        refresh:
+          description: "System refresh rate"
+          isa: Num
+          default: 10
+          global: 1
         admins:
           description: "Are we on Production?"
           isa: ArrayRef
