@@ -105,8 +105,8 @@ But user is free to implement any storage backend he wants if it is implemented 
 =cut
 
 has chronicle_writer => (
-    is       => 'rw',
-    isa      => 'Data::Chronicle::Writer',
+    is  => 'rw',
+    isa => 'Data::Chronicle::Writer',
 );
 
 =head2 chronicle_subscriber
@@ -338,8 +338,7 @@ Save dynamic settings into chronicle db
 sub save_dynamic {
     my $self = shift;
     my ($package, $filename, $line) = caller;
-    warnings::warnif deprecated =>
-        "Deprecated call used (save_dynamic). Called from package: $package | file: $filename | line: $line";
+    warnings::warnif deprecated => "Deprecated call used (save_dynamic). Called from package: $package | file: $filename | line: $line";
     return $self->_save_dynamic();
 }
 
@@ -504,6 +503,9 @@ Example:
 
 sub set {
     my ($self, $pairs) = @_;
+
+    die 'cannot set when $self->chronicle_writer is undefined' unless $self->chronicle_writer;
+
     my $rev_obj   = Date::Utility->new;
     my $rev_epoch = $rev_obj->{epoch};
 
