@@ -366,13 +366,15 @@ sub _save_dynamic {
 =head2 current_revision
 
 loads setting from chronicle reader and returns the last revision and drops them
+The result is cached for 2 seconds at the most. So, the highest frequency of
+Redis calls caused by this method is 0.5 Hz.
 
 =cut
 {
     my %c;
     sub current_revision {
         my $self = shift;
-        my $t = CORE::time;
+        my $t = int(CORE::time/2);
         my $k = $self->setting_name . "\0" . $self->setting_namespace;
         my $el = $c{$k};
         return $el->[1] if $el and $el->[0]>=$t;
