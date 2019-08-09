@@ -93,9 +93,8 @@ But user is free to implement any storage backend he wants if it is implemented 
 =cut
 
 has chronicle_writer => (
-    is       => 'ro',
+    is       => 'rw',
     isa      => 'Data::Chronicle::Writer',
-    required => 1,
 );
 
 has setting_namespace => (
