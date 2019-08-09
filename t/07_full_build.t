@@ -22,6 +22,10 @@ my $old_revision = $app_config->current_revision;
 $app_config->system->email('test@abc.com');
 $app_config->save_dynamic;
 is_deeply($app_config->system->email, 'test@abc.com', "email is updated");
+
+# revision information is cached for 2 sec.
+sleep 2;
+
 my $new_revision = $app_config->current_revision;
 isnt($new_revision, $old_revision, "revision updated");
 my $app_config2 = App::Config::Chronicle->new(

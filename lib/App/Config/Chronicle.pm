@@ -3,7 +3,7 @@ package App::Config::Chronicle;
 
 use strict;
 use warnings;
-use Time::HiRes qw(time);
+use Time::HiRes qw();
 use List::Util qw(any pairs pairmap);
 
 =head1 NAME
@@ -374,12 +374,12 @@ Redis calls caused by this method is 0.5 Hz.
     my %c;
     sub current_revision {
         my $self = shift;
-        my $t = int(CORE::time/2);
+        my $t = int(time/2);
         my $k = $self->setting_name . "\0" . $self->setting_namespace;
         my $el = $c{$k};
         return $el->[1] if $el and $el->[0]>=$t;
 
-        my $r = $self->chronicle_reader->get($self->setting_namespace, $self->setting_name)->{_rev};
+        my $r = ($self->chronicle_reader->get($self->setting_namespace, $self->setting_name) // +{})->{_rev};
         $c{$k} = [$t, $r];
 
         return $r;
