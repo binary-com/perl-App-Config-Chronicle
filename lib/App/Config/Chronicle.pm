@@ -3,7 +3,7 @@ package App::Config::Chronicle;
 
 use strict;
 use warnings;
-use Time::HiRes qw(time);
+use Time::HiRes qw();
 use List::Util qw(any pairs pairmap);
 
 =head1 NAME
@@ -364,13 +364,38 @@ sub _save_dynamic {
 =head2 current_revision
 
 loads setting from chronicle reader and returns the last revision and drops them
+The result is cached for 2 seconds at the most. So, the highest frequency of
+Redis calls caused by this method is 0.5 Hz.
 
 =cut
 
-sub current_revision {
-    my $self = shift;
-    my $settings = $self->chronicle_reader->get($self->setting_namespace, $self->setting_name);
-    return $settings->{_rev};
+{
+    my %cache;
+
+    sub current_revision {
+        my $self = shift;
+        
+        # 1. Divide the current epoch by 2, to the nearest number
+        my $halved_current_epoch = int(time/2);
+        
+        # 2. Get the key name
+        my $setting_name = $self->setting_name;
+        my $setting_namespace = $self->setting_namespace;
+        
+        my $key = $setting_name . "\0" . $setting_namespace;
+        
+        # 3. Get the value from the cache
+        my $val = $cache{$key};
+        
+        # 4. Return the value, if it exists and is in the split second interval
+        return $val->[1] if ($val && $val->[0] == $halved_current_epoch);
+        
+        my $new_val = ($self->chronicle_reader->get($setting_namespace, $setting_name) // +{})->{_rev};
+        $cache{$key} = [$halved_current_epoch, $new_val];
+        
+        return $new_val;
+    }
+
 }
 
 sub _build_data_set {
