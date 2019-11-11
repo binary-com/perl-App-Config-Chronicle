@@ -1,3 +1,4 @@
+#!perl
 use Test::Most;
 use Test::Warn;
 use Data::Chronicle::Mock;
@@ -22,6 +23,9 @@ my $old_revision = $app_config->current_revision;
 $app_config->system->email('test@abc.com');
 $app_config->save_dynamic;
 is_deeply($app_config->system->email, 'test@abc.com', "email is updated");
+
+$app_config->check_for_update;
+
 my $new_revision = $app_config->current_revision;
 isnt($new_revision, $old_revision, "revision updated");
 my $app_config2 = App::Config::Chronicle->new(
@@ -36,12 +40,17 @@ is($app_config2->system->email,    'test@abc.com', "email is updated");
 $app_config2->check_for_update;
 $app_config->system->email('test2@abc.com');
 $app_config->save_dynamic;
+
 # will not refresh as not enough time has passed
 $app_config2->check_for_update;
 is($app_config2->system->email, 'test@abc.com', "still have old value");
 
-sleep($app_config2->refresh_interval);
-$app_config2->check_for_update;
+{
+    no warnings 'redefine';
+    local *Time::HiRes::time = sub {return Time::HiRes::gettimeofday+$app_config2->refresh_interval};
+    $app_config2->check_for_update;
+}
+
 is($app_config2->system->email, 'test2@abc.com', "check_for_update worked");
 
 done_testing;
