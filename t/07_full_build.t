@@ -45,8 +45,11 @@ $app_config->save_dynamic;
 $app_config2->check_for_update;
 is($app_config2->system->email, 'test@abc.com', "still have old value");
 
-sleep($app_config2->refresh_interval);
-$app_config2->check_for_update;
+{
+    no warnings 'redefine';
+    local *Time::HiRes::time = sub {return Time::HiRes::gettimeofday+$app_config2->refresh_interval};
+    $app_config2->check_for_update;
+}
 
 is($app_config2->system->email, 'test2@abc.com', "check_for_update worked");
 
