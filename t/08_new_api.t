@@ -22,7 +22,10 @@ use constant {
 
 my $tick = 0;
 set_fixed_time($tick);
-*Time::HiRes::time = \&Test::MockTime::time;
+{
+    no warnings 'redefine';
+    *Time::HiRes::time = \&Test::MockTime::time;
+}
 
 subtest 'Global revision = 0' => sub {
     my $app_config = _new_app_config();

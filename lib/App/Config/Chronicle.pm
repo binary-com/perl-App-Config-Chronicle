@@ -309,8 +309,9 @@ check and load updated settings from chronicle db
 
 sub check_for_update {
     my $self = shift;
+    my $force = shift;
 
-    return unless $self->_has_refresh_interval_passed();
+    return unless $force or $self->_has_refresh_interval_passed();
     $self->_updated_at(Time::HiRes::time());
 
     # do check in Redis
@@ -369,8 +370,7 @@ loads setting from chronicle reader and returns the last revision and drops them
 
 sub current_revision {
     my $self = shift;
-    my $settings = $self->chronicle_reader->get($self->setting_namespace, $self->setting_name);
-    return $settings->{_rev};
+    return $self->data_set->{version};
 }
 
 sub _build_data_set {
