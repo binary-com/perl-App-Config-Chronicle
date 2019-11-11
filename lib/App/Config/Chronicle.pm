@@ -358,14 +358,19 @@ sub _save_dynamic {
     $settings->{global} = $global->data;
     $settings->{_rev}   = Time::HiRes::time();
     $self->chronicle_writer->set($self->setting_namespace, $self->setting_name, $settings, Date::Utility->new);
+
+    # since we now have the most recent data, we better set the
+    # local version as well.
     $self->data_set->{version} = $settings->{_rev};
+    $self->_updated_at($settings->{_rev});
 
     return 1;
 }
 
 =head2 current_revision
 
-loads setting from chronicle reader and returns the last revision and drops them
+returns the version of the local copy of the data. Note, local changes
+do not change this value until they are written back.
 
 =cut
 
@@ -377,7 +382,6 @@ sub current_revision {
 sub _build_data_set {
     my $self = shift;
 
-    # relatively small yaml, so loading it shouldn't be expensive.
     my $data_set->{app_config} = Data::Hash::DotNotation->new(data => {});
 
     $self->_add_app_setttings($data_set, $self->chronicle_reader->get($self->setting_namespace, $self->setting_name) || {});
