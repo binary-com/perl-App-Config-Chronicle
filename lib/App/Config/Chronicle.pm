@@ -358,6 +358,7 @@ sub _save_dynamic {
     $settings->{global} = $global->data;
     $settings->{_rev}   = Time::HiRes::time();
     $self->chronicle_writer->set($self->setting_namespace, $self->setting_name, $settings, Date::Utility->new);
+    $self->data_set->{version} = $settings->{_rev};
 
     return 1;
 }
