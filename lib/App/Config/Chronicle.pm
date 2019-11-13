@@ -371,7 +371,9 @@ sub _save_dynamic {
 
 =head2 current_revision
 
-loads setting from chronicle reader and returns the last revision and drops them
+Loads setting from chronicle reader and returns the last revision
+
+It is more likely that you want C<loaded_revision> in regular use
 
 =cut
 
@@ -379,6 +381,22 @@ sub current_revision {
     my $self = shift;
     my $settings = $self->chronicle_reader->get($self->setting_namespace, $self->setting_name);
     return $settings->{_rev};
+}
+
+=head2 loaded_revision
+
+Returns the revision loaded and served by this instance
+
+This may not reflect the latest stored version in the Chronicle persistence.
+However, it is the revision of the data which will be returned when
+querying this instance
+
+=cut
+
+sub loaded_revision {
+    my $self = shift;
+
+    return $self->data_set->{version};
 }
 
 sub _build_data_set {
