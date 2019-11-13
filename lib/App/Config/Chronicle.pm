@@ -305,12 +305,15 @@ sub _validate_key {
 
 check and load updated settings from chronicle db
 
+Checks at most every C<refresh_interval> unless forced with
+a truthy first argument
+
 =cut
 
 sub check_for_update {
-    my $self = shift;
+    my ($self, $force) = @_;
 
-    return unless $self->_has_refresh_interval_passed();
+    return unless $force or $self->_has_refresh_interval_passed();
     $self->_updated_at(Time::HiRes::time());
 
     # do check in Redis
