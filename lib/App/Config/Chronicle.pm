@@ -361,6 +361,11 @@ sub _save_dynamic {
     $settings->{_rev}   = Time::HiRes::time();
     $self->chronicle_writer->set($self->setting_namespace, $self->setting_name, $settings, Date::Utility->new);
 
+    # since we now have the most recent data, we better set the
+    # local version as well.
+    $self->data_set->{version} = $settings->{_rev};
+    $self->_updated_at($settings->{_rev});
+
     return 1;
 }
 
