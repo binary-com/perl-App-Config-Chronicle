@@ -373,7 +373,7 @@ sub _save_dynamic {
 
 Loads setting from chronicle reader and returns the last revision
 
-It is more likely that you want C<loaded_revision> in regular use
+It is more likely that you want L</loaded_revision> in regular use
 
 =cut
 
