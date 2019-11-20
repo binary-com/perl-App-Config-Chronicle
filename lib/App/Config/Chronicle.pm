@@ -305,12 +305,15 @@ sub _validate_key {
 
 check and load updated settings from chronicle db
 
+Checks at most every C<refresh_interval> unless forced with
+a truthy first argument
+
 =cut
 
 sub check_for_update {
-    my $self = shift;
+    my ($self, $force) = @_;
 
-    return unless $self->_has_refresh_interval_passed();
+    return unless $force or $self->_has_refresh_interval_passed();
     $self->_updated_at(Time::HiRes::time());
 
     # do check in Redis
@@ -358,12 +361,19 @@ sub _save_dynamic {
     $settings->{_rev}   = Time::HiRes::time();
     $self->chronicle_writer->set($self->setting_namespace, $self->setting_name, $settings, Date::Utility->new);
 
+    # since we now have the most recent data, we better set the
+    # local version as well.
+    $self->data_set->{version} = $settings->{_rev};
+    $self->_updated_at($settings->{_rev});
+
     return 1;
 }
 
 =head2 current_revision
 
-loads setting from chronicle reader and returns the last revision and drops them
+Loads setting from chronicle reader and returns the last revision
+
+It is more likely that you want L</loaded_revision> in regular use
 
 =cut
 
@@ -371,6 +381,22 @@ sub current_revision {
     my $self = shift;
     my $settings = $self->chronicle_reader->get($self->setting_namespace, $self->setting_name);
     return $settings->{_rev};
+}
+
+=head2 loaded_revision
+
+Returns the revision loaded and served by this instance
+
+This may not reflect the latest stored version in the Chronicle persistence.
+However, it is the revision of the data which will be returned when
+querying this instance
+
+=cut
+
+sub loaded_revision {
+    my $self = shift;
+
+    return $self->data_set->{version};
 }
 
 sub _build_data_set {
