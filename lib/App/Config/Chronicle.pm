@@ -496,7 +496,10 @@ sub _has_refresh_interval_passed {
     my $now                    = Time::HiRes::time();
     my $prev_update            = $self->_updated_at;
     my $time_since_prev_update = $now - $prev_update;
-    return ($time_since_prev_update >= $self->refresh_interval);
+    
+    return ($time_since_prev_update >= $self->refresh_interval)
+    || ($self->chronicle_reader->get('app_settings', 'test') &&
+    $self->chronicle_reader->get('app_settings', 'test')->{refresh_interval});
 }
 
 sub _is_cache_stale {
