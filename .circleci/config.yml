@@ -11,6 +11,9 @@ jobs:
       - checkout
       - run:
           command:
+            sudo apt update && sudo apt install postgresql
+      - run:
+          command:
             cpm install -g --no-test Dist::Zilla Dist::Zilla::App::Command::cover
           name: Install Dzil
       - run:
