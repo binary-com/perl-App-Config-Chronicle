@@ -11,7 +11,7 @@ jobs:
       - checkout
       - run:
           command:
-            apt install postgresql
+            apt-get install -y postgresql
       - run:
           command:
             cpm install -g --no-test Dist::Zilla Dist::Zilla::App::Command::cover
