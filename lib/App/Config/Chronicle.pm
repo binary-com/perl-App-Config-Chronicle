@@ -338,12 +338,12 @@ Save dynamic settings into chronicle db
 
 =cut
 
-sub save_dynamic {
-    my $self = shift;
-    my ($package, $filename, $line) = caller;
-    warnings::warnif deprecated => "Deprecated call used (save_dynamic). Called from package: $package | file: $filename | line: $line";
-    return $self->_save_dynamic();
-}
+# sub save_dynamic {
+#     my $self = shift;
+#     my ($package, $filename, $line) = caller;
+#     warnings::warnif deprecated => "Deprecated call used (save_dynamic). Called from package: $package | file: $filename | line: $line";
+#     return $self->_save_dynamic();
+# }
 
 # sub _save_dynamic {
 #     my $self = shift;
@@ -414,7 +414,7 @@ sub _application_settings {
       next if $key eq '_global_rev';
       $app_settings->{global}->set($key, $self->chronicle_reader->get('app_settings', $key)->{data});
    }   
-   $app_settings->{_rev} = $self->chronicle_reader->get('app_settings', '_global_rev');
+   $app_settings->{_rev} = $self->chronicle_reader->get('app_settings', '_global_rev')->{data};
 
    return $app_settings;
 
@@ -439,7 +439,7 @@ sub _add_app_setttings {
 
     if ($app_settings) {
         $data_set->{global} = $app_settings->{global};
-        $data_set->{version} = $app_settings->{_rev}->{data};
+        $data_set->{version} = $app_settings->{_rev};
     }
 
     return;
@@ -567,7 +567,7 @@ sub set {
     # Temporary adapter code
     ######
     $self->data_set->{global}->set($_, $pairs->{$_}) foreach keys %$pairs;
-    $self->_save_dynamic();
+    # $self->_save_dynamic();
 
     return 1;
 }
