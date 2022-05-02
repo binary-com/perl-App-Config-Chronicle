@@ -439,7 +439,7 @@ sub _add_app_setttings {
 
     if ($app_settings) {
         $data_set->{global} = $app_settings->{global};
-        $data_set->{version} = $app_settings->{_rev};
+        $data_set->{version} = $app_settings->{_rev}->{data};
     }
 
     return;
