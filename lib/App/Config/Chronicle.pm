@@ -6,6 +6,8 @@ use warnings;
 use Time::HiRes qw(time);
 use List::Util qw(any pairs pairmap);
 
+use Data::Dumper;
+
 =head1 NAME
 
 App::Config::Chronicle - An OO configuration module which can be changed and stored into chronicle database.
@@ -347,24 +349,24 @@ Save dynamic settings into chronicle db
 
 # sub _save_dynamic {
 #     my $self = shift;
-#     my $settings = $self->chronicle_reader->get($self->setting_namespace, $self->setting_name) || {};
+#     # my $settings = $self->chronicle_reader->get($self->setting_namespace, $self->setting_name) || {};
 #
 #     #Cleanup globals
-#     my $global = Data::Hash::DotNotation->new();
+#     # my $global = Data::Hash::DotNotation->new();
 #     foreach my $key (keys %{$self->dynamic_settings_info->{global}}) {
 #         if ($self->data_set->{global}->key_exists($key)) {
 #             $global->set($key, $self->data_set->{global}->get($key));
 #         }
 #     }
 #
-#     $settings->{global} = $global->data;
-#     $settings->{_rev}   = Time::HiRes::time();
-#     $self->chronicle_writer->set($self->setting_namespace, $self->setting_name, $settings, Date::Utility->new);
-#
-#     # since we now have the most recent data, we better set the
-#     # local version as well.
-#     $self->data_set->{version} = $settings->{_rev};
-#     $self->_updated_at($settings->{_rev});
+#     # $settings->{global} = $global->data;
+#     # $settings->{_rev}   = Time::HiRes::time();
+#     # $self->chronicle_writer->set($self->setting_namespace, $self->setting_name, $settings, Date::Utility->new);
+#     #
+#     # # since we now have the most recent data, we better set the
+#     # # local version as well.
+#     $self->data_set->{version} = $self->current_revision;
+#     $self->_updated_at($self->current_revision);
 #
 #     return 1;
 # }
@@ -380,7 +382,7 @@ It is more likely that you want L</loaded_revision> in regular use
 sub current_revision {
     my $self = shift;
 
-    return $self->chronicle_reader->get('app_settings', '_global_rev');
+    return $self->chronicle_reader->get('app_settings', '_global_rev')->{data};
 }
 
 =head2 loaded_revision
@@ -555,7 +557,8 @@ sub set {
     die 'cannot set when $self->chronicle_writer is undefined' unless $self->chronicle_writer;
 
     my $rev_obj   = Date::Utility->new;
-    my $rev_epoch = $rev_obj->{epoch};
+    my $rev_epoch = Time::HiRes::time;
+    # my $rev_epoch = $rev_obj->{epoch};
 
     $self->_key_is_dynamic($_) or die "Cannot set with key: $_ | Key must be defined with 'global: 1'" foreach keys %$pairs;
 
@@ -567,8 +570,10 @@ sub set {
     # Temporary adapter code
     ######
     $self->data_set->{global}->set($_, $pairs->{$_}) foreach keys %$pairs;
-    # $self->_save_dynamic();
+    $self->data_set->{version} = $self->current_revision;
+    $self->_updated_at($self->current_revision);
 
+    # $self->_save_dynamic();
     return 1;
 }
 
