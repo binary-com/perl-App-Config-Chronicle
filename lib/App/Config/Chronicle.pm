@@ -6,8 +6,6 @@ use warnings;
 use Time::HiRes qw(time);
 use List::Util qw(any pairs pairmap);
 
-use Data::Dumper;
-
 =head1 NAME
 
 App::Config::Chronicle - An OO configuration module which can be changed and stored into chronicle database.
@@ -368,7 +366,6 @@ sub _application_settings {
    my $self = shift;
 
    my $redis = BOM::Config::Redis::redis_replicated_read();
-
    my $app_settings->{global} = Data::Hash::DotNotation->new();
 
    my $redis_keys = $redis->execute("keys", 'app_settings::[^b]*');
