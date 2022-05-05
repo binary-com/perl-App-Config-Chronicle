@@ -365,10 +365,9 @@ sub loaded_revision {
 sub _application_settings {
    my $self = shift;
 
-   my $redis = BOM::Config::Redis::redis_replicated_read();
    my $app_settings->{global} = Data::Hash::DotNotation->new();
 
-   my $redis_keys = $redis->execute("keys", 'app_settings::[^b]*');
+   my $redis_keys = $self->chronicle_reader->cache_reader->execute("keys", 'app_settings::[^b]*');
    my @splitted;
    foreach my $key (@$redis_keys) {
       @splitted = split('::', $key);
