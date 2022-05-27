@@ -8,7 +8,7 @@ use JSON::MaybeXS;
 
 use MooseX::Types -declare => ['LongStr'];
 use Moose::Util::TypeConstraints;
-use Try::Tiny;
+use Syntax::Keyword::Try;
 
 ## VERSION
 
@@ -31,7 +31,7 @@ sub _check_type {
     my $def = $self->{definition};
     $self->{_json_string} //= $def->{isa} eq 'json_string' ? 1 : 0;
     if ($self->{_json_string}) {
-        try { $value = JSON::MaybeXS->new->decode($value) } catch { die "Couldn't decode JSON attribute $value: $_" };
+        try { $value = JSON::MaybeXS->new->decode($value) } catch ($e) { die "Couldn't decode JSON attribute $value: $e" };
     } else {
         $self->{_type_constraint} //= find_type_constraint($def->{isa});
         unless ($self->{_type_constraint}) {

@@ -9,6 +9,7 @@ requires 'List::Util', '>= 1.29';
 requires 'Date::Utility';
 requires 'YAML::XS';
 requires 'namespace::autoclean';
+requires 'Syntax::Keyword::Try';
 
 on test => sub {
     requires 'Test::MockObject';
