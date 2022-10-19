@@ -19,6 +19,9 @@ alias:
         # dzil listdeps --missing directly here
         cpanm -n --installdeps .
         dzil listdeps --author --missing --cpanm-versions | xargs cpanm -n
+  - &install_pgsql
+    run:
+      name: Install  
  
 jobs:
   test:
@@ -31,6 +34,7 @@ jobs:
       - image: perldocker/perl-tester:<< parameters.perl-version >>
     steps:
       - checkout
+      - *install_pgsql
       - *install_dzil
       - *install_author_deps
       - *install_deps
@@ -43,6 +47,7 @@ jobs:
       - image: perldocker/perl-tester:5.34
     steps:
       - checkout
+      - *install_pgsql
       - *install_dzil
       - *install_author_deps
       - *install_deps
