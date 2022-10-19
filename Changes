@@ -1,4 +1,4 @@
-Revision history for App-Config
+Revision history for App-Config-Chronicle
 
 {{$NEXT}}
     Implemented new storage system based on key-values pairs instead of monolithic tree structure
