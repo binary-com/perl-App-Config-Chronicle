@@ -21,8 +21,8 @@ alias:
         dzil listdeps --author --missing --cpanm-versions | xargs cpanm -n
   - &install_pgsql
     run:
-      name: Install  
- 
+      name: Install PostgreSql 
+      command: apt-get install -y postgresql 
 jobs:
   test:
     parameters:
