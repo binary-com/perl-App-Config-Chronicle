@@ -12,7 +12,7 @@ App::Config::Chronicle - An OO configuration module which can be changed and sto
 
 =cut
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 =head1 SYNOPSIS
 
