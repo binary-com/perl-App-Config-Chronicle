@@ -318,7 +318,7 @@ sub check_for_update {
 
     # do check in Redis
     my $data_set = $self->data_set;
-    my $app_settings = $self->chronicle_reader->get($self->setting_namespace, $self->setting_name);
+    my $app_settings = $self->_application_settings;
 
     my $db_version;
     if ($app_settings and $data_set) {
@@ -332,43 +332,6 @@ sub check_for_update {
     return $db_version;
 }
 
-=head2 save_dynamic
-
-Save dynamic settings into chronicle db
-
-=cut
-
-sub save_dynamic {
-    my $self = shift;
-    my ($package, $filename, $line) = caller;
-    warnings::warnif deprecated => "Deprecated call used (save_dynamic). Called from package: $package | file: $filename | line: $line";
-    return $self->_save_dynamic();
-}
-
-sub _save_dynamic {
-    my $self = shift;
-    my $settings = $self->chronicle_reader->get($self->setting_namespace, $self->setting_name) || {};
-
-    #Cleanup globals
-    my $global = Data::Hash::DotNotation->new();
-    foreach my $key (keys %{$self->dynamic_settings_info->{global}}) {
-        if ($self->data_set->{global}->key_exists($key)) {
-            $global->set($key, $self->data_set->{global}->get($key));
-        }
-    }
-
-    $settings->{global} = $global->data;
-    $settings->{_rev}   = Time::HiRes::time();
-    $self->chronicle_writer->set($self->setting_namespace, $self->setting_name, $settings, Date::Utility->new);
-
-    # since we now have the most recent data, we better set the
-    # local version as well.
-    $self->data_set->{version} = $settings->{_rev};
-    $self->_updated_at($settings->{_rev});
-
-    return 1;
-}
-
 =head2 current_revision
 
 Loads setting from chronicle reader and returns the last revision
@@ -379,8 +342,8 @@ It is more likely that you want L</loaded_revision> in regular use
 
 sub current_revision {
     my $self = shift;
-    my $settings = $self->chronicle_reader->get($self->setting_namespace, $self->setting_name);
-    return $settings->{_rev};
+
+    return $self->chronicle_reader->get('app_settings', '_global_rev')->{data};
 }
 
 =head2 loaded_revision
@@ -399,13 +362,33 @@ sub loaded_revision {
     return $self->data_set->{version};
 }
 
+sub _application_settings {
+   my $self = shift;
+
+   my $app_settings->{global} = Data::Hash::DotNotation->new();
+
+   my $redis_keys = $self->chronicle_reader->cache_reader->execute("keys", 'app_settings::[^b]*');
+   my @splitted;
+   foreach my $key (@$redis_keys) {
+      @splitted = split('::', $key);
+      $key = $splitted[1];
+      next if $key eq '_global_rev';
+      $app_settings->{global}->set($key, $self->chronicle_reader->get('app_settings', $key)->{data});
+   }   
+   $app_settings->{_rev} = $self->chronicle_reader->get('app_settings', '_global_rev')->{data};
+
+   return $app_settings;
+
+}
+
 sub _build_data_set {
     my $self = shift;
 
     # relatively small yaml, so loading it shouldn't be expensive.
     my $data_set->{app_config} = Data::Hash::DotNotation->new(data => {});
 
-    $self->_add_app_setttings($data_set, $self->chronicle_reader->get($self->setting_namespace, $self->setting_name) || {});
+    my $app_settings = $self->_application_settings;
+    $self->_add_app_setttings($data_set, $app_settings || {});
 
     return $data_set;
 }
@@ -416,7 +399,7 @@ sub _add_app_setttings {
     my $app_settings = shift;
 
     if ($app_settings) {
-        $data_set->{global} = Data::Hash::DotNotation->new(data => $app_settings->{global});
+        $data_set->{global} = $app_settings->{global};
         $data_set->{version} = $app_settings->{_rev};
     }
 
@@ -532,12 +515,12 @@ sub set {
 
     die 'cannot set when $self->chronicle_writer is undefined' unless $self->chronicle_writer;
 
-    my $rev_obj   = Date::Utility->new;
+    my $rev_obj = Date::Utility->new;
     my $rev_epoch = $rev_obj->{epoch};
 
     $self->_key_is_dynamic($_) or die "Cannot set with key: $_ | Key must be defined with 'global: 1'" foreach keys %$pairs;
 
-    $pairs->{_global_rev} = $rev_epoch;
+    $pairs->{_global_rev} = Time::HiRes::time;
     my %key_objs_hash = pairmap { $a => {data => $b, _local_rev => $rev_epoch} } %$pairs;
     $self->_store_objects(\%key_objs_hash, $rev_obj);
 
@@ -545,7 +528,8 @@ sub set {
     # Temporary adapter code
     ######
     $self->data_set->{global}->set($_, $pairs->{$_}) foreach keys %$pairs;
-    $self->_save_dynamic();
+    $self->data_set->{version} = $self->current_revision;
+    $self->_updated_at($self->current_revision);
 
     return 1;
 }
